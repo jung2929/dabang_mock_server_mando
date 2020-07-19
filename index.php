@@ -10,17 +10,83 @@ date_default_timezone_set('Asia/Seoul');
 ini_set('default_charset', 'utf8mb4');
 
 //에러출력하게 하는 코드
-//error_reporting(E_ALL); ini_set("display_errors", 1);
+error_reporting(E_ALL); ini_set("display_errors", 1);
 
 //Main Server API
 $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) {
     /* ******************   Test   ****************** */
-    $r->addRoute('GET', '/', ['IndexController', 'index']);
-    $r->addRoute('GET', '/test', ['IndexController', 'test']);
-    $r->addRoute('GET', '/test/{testNo}', ['IndexController', 'testDetail']);
-    $r->addRoute('POST', '/test', ['IndexController', 'testPost']);
-    $r->addRoute('GET', '/jwt', ['MainController', 'validateJwt']);
-    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
+    // 지도 탭 관련
+    $r->addRoute('GET', '/test/room/list', ['MapController', 'roomList']);
+    $r->addRoute('GET', '/test/complex/list', ['MapController', 'index']);
+    $r->addRoute('GET', '/test/agency/list', ['MapController', 'index']);
+    $r->addRoute('GET', '/test/room/detail/{roomIdx}', ['MapController', 'index']);
+    $r->addRoute('GET', '/test/complex/detail/{complexIdx}', ['MapController', 'index']);
+    $r->addRoute('GET', '/test/agency/detail/{agencyIdx}', ['MapController', 'index']);
+    $r->addRoute('GET', '/test/geoFence', ['MapController', 'test']);
+    // 홈 탭 관련
+    $r->addRoute('GET', '/test/room/interest/{userIdx}', ['HomeController', 'index']);
+    $r->addRoute('GET', '/test/complex/interest/{userIdx}', ['HomeController', 'index']);
+    $r->addRoute('GET', '/test/content', ['HomeController', 'index']);
+    $r->addRoute('GET', '/test/subscription-center', ['HomeController', 'test']);
+    // 홈-검색 탭 관련
+    $r->addRoute('GET', '/test/search/list', ['SearchController', 'test']);
+    $r->addRoute('GET', '/test/search/recently/{userIdx}', ['SearchController', 'test']);
+    $r->addRoute('DELETE', '/test/search/record/{userIdx}', ['SearchController', 'test']);
+    // 관심목록 탭 관련
+    $r->addRoute('GET', '/test/room/view/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/complex/view/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/room/like/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/complex/like/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/room/compare', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/room/question/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/agency/call/{userIdx}', ['InterestController', 'test']);
+    // 유저 관련
+    $r->addRoute('GET', '/test/user', ['UserController', 'test']);
+    $r->addRoute('POST', '/test/user', ['UserController', 'test']);
+    $r->addRoute('GET', '/test/kakao-login', ['UserController', 'test']);
+    $r->addRoute('GET', '/test/facebook-login', ['UserController', 'test']);
+    // 더보기 기타 관련
+    $r->addRoute('GET', '/test/notice', ['EtcController', 'test']);
+    $r->addRoute('GET', '/test/side-app', ['EtcController', 'test']);
+
+
+    // *************완성된 API, 더미데이터 넣어 놓음**************
+    $r->addRoute('GET', '/room/list', ['DummyController', 'roomList']);
+    $r->addRoute('GET', '/complex/list', ['DummyController', 'complexList']);
+    $r->addRoute('GET', '/agency/list', ['DummyController', 'agencyList']);
+    $r->addRoute('GET', '/room/detail/{roomIdx}', ['DummyController', 'roomDetail']);
+    $r->addRoute('GET', '/complex/detail/{complexIdx}', ['DummyController', 'complexDetail']);
+    $r->addRoute('GET', '/agency/detail/{agencyIdx}', ['DummyController', 'agencyDetail']);
+    $r->addRoute('GET', '/geoFence', ['DummyController', 'geoFence']);
+    // 홈 탭 관련
+    $r->addRoute('GET', '/room/interest/{userIdx}', ['DummyController', 'homeRoomInterest']);
+    $r->addRoute('GET', '/complex/interest/{userIdx}', ['DummyController', 'homeComplexInterest']);
+    $r->addRoute('GET', '/content', ['DummyController', 'homeContent']);
+    $r->addRoute('GET', '/subscription-center', ['DummyController', 'homeSubscriptionCenter']);
+    // 홈-검색 탭 관련
+    $r->addRoute('GET', '/search/list', ['DummyController', 'searchList']);
+    $r->addRoute('GET', '/search/recently/{userIdx}', ['DummyController', 'searchRecently']);
+    $r->addRoute('DELETE', '/search/record/{userIdx}', ['DummyController', 'deleteSearchRecord']);
+    // 관심목록 탭 관련
+    $r->addRoute('GET', '/room/view/{userIdx}', ['DummyController', 'userRoomView']);
+    $r->addRoute('GET', '/complex/view/{userIdx}', ['DummyController', 'userComplexView']);
+    $r->addRoute('GET', '/room/like/{userIdx}', ['DummyController', 'userRoomLike']);
+    $r->addRoute('GET', '/complex/like/{userIdx}', ['DummyController', 'userComplexLike']);
+    $r->addRoute('GET', '/room/compare', ['DummyController', 'roomCompare']);
+    $r->addRoute('GET', '/room/question/{userIdx}', ['DummyController', 'userRoomQuestion']);
+    $r->addRoute('GET', '/agency/call/{userIdx}', ['DummyController', 'userAgencyCall']);
+    // 유저 관련
+    $r->addRoute('GET', '/user', ['DummyController', 'userInfo']);
+    $r->addRoute('POST', '/user', ['DummyController', 'createUser']);
+    $r->addRoute('GET', '/kakao-login', ['DummyController', 'kakaoLogin']);
+    $r->addRoute('GET', '/facebook-login', ['DummyController', 'facebookLogin']);
+    // 더보기 기타 관련
+    $r->addRoute('GET', '/notice', ['DummyController', 'noticeList']);
+    $r->addRoute('GET', '/side-app', ['DummyController', 'sideApp']);
+
+
+    $r->addRoute('GET', '/jwt', ['DummyController', 'validateJwt']);
+    $r->addRoute('POST', '/jwt', ['DummyController', 'createJwt']);
     
 
 
@@ -80,30 +146,34 @@ switch ($routeInfo[0]) {
                 $vars = $routeInfo[2];
                 require './controllers/MainController.php';
                 break;
-            /*case 'EventController':
+            case 'MapController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/EventController.php';
+                require './controllers/MapController.php';
                 break;
-            case 'ProductController':
+            case 'HomeController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/ProductController.php';
+                require './controllers/HomeController.php';
                 break;
             case 'SearchController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
                 require './controllers/SearchController.php';
                 break;
-            case 'ReviewController':
+            case 'InterestController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/ReviewController.php';
+                require './controllers/InterestController.php';
                 break;
-            case 'ElementController':
+            case 'UserController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/ElementController.php';
+                require './controllers/UserController.php';
                 break;
-            case 'AskFAQController':
+            case 'EtcController':
                 $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
-                require './controllers/AskFAQController.php';
-                break;*/
+                require './controllers/EtcController.php';
+                break;
+            case 'DummyController':
+                $handler = $routeInfo[1][1]; $vars = $routeInfo[2];
+                require './controllers/DummyController.php';
+                break;
         }
 
         break;

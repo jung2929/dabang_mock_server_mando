@@ -10,7 +10,7 @@ try {
     addAccessLogs($accessLogs, $req);
     switch ($handler) {
         case "index":
-            echo "API Server";
+            echo "API Server2";
             break;
         case "ACCESS_LOGS":
             //            header('content-type text/html charset=utf-8');

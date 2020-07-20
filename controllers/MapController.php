@@ -29,8 +29,107 @@ try {
          */
         case "roomList":
 
+            //필수 쿼리스트링 받기
+            $roomType=$_GET['roomType'];
+            $maintenanceCostMin=$_GET['maintenanceCostMin'];
+            $maintenanceCostMax=$_GET['maintenanceCostMax'];
+            $exclusiveAreaMin=$_GET['exclusiveAreaMin'];
+            $exclusiveAreaMax=$_GET['exclusiveAreaMax'];
+
+            //지역 or 단지소속, 중개사 소속 방 리스트 쿼리스트링
+            $dong=$_GET['dong'];
+            $complexIdx=$_GET['complexIdx'];
+            $agencyIdx=$_GET['agencyIdx'];
+
+            //범위 쿼리스트링
+            $latitude=$_GET['latitude'];
+            $longitude=$_GET['longitude'];
+            $scale=$_GET['scale'];
+
+            //xx동으로 분류
+            if($dong){
+                $result=[];
+                $result['roomNum'] = dongRoomNum($dong);
+                $result['roomList'] = dongRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$dong);;
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($complexIdx){
+                //단지내 포함된 방의 수
+                $result=[];
+                $result['roomNum'] = complexRoomNum($complexIdx);
+
+                //단지에 포함된 방이 없을 경우
+                if(complexRoomList($complexIdx)){
+                    $result['roomList'] = complexRoomList($complexIdx);;
+                } else {
+                    $result['roomList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($agencyIdx){
+                //단지내 포함된 방의 수
+                $result=[];
+                $result['roomNum'] = agencyRoomNum($agencyIdx);
+
+                //단지에 포함된 방이 없을 경우
+                if(agencyRoomList($agencyIdx)){
+                    $result['roomList'] = agencyRoomList($agencyIdx);;
+                } else {
+                    $result['roomList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($latitude and $longitude and $scale){
+                //범위내 포함된 방의 수
+                $result=[];
+                $result['roomNum'] = rangeRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale);
+
+                //범위에 포함된 방이 없을 경우
+                if(rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale)){
+                    $result['roomList'] = rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale);
+                } else {
+                    $result['roomList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+
+
+
+
             http_response_code(200);
-            $res->result = test();
+            $res->result = roomList();
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "테스트 성공";
@@ -48,8 +147,7 @@ try {
             //유효한 방 인덱스 인지 검사.
             if(!isValidRoomIdx($roomIdx)){
                 http_response_code(200);
-                $res->result = roomDetail($roomIdx);
-                $res->isSuccess = TRUE;
+                $res->isSuccess = False;
                 $res->code = 200;
                 $res->message = "검색 결과가 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
@@ -92,15 +190,62 @@ try {
          * API Name : 테스트 Body & Insert API
          * 마지막 수정 날짜 : 19.04.29
          */
-        case "testPost":
+        case "complexDetail":
+
+            $complexIdx=$vars["complexIdx"];
+
+            if(!isValidComplexIdx($complexIdx)){
+                http_response_code(200);
+                $res->isSuccess = False;
+                $res->code = 200;
+                $res->message = "검색 결과가 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+
+            //단지 정보 쿼리 여러개 쓰기 위해 분할.
+            $result=[];
+            $result['complexInfo'] = complexDetail($complexIdx); //단지 정보
+            $result['sizeInfo'] = complexSizeInfo($complexIdx);
+            $result['surroundingRecommendationComplex'] = surroundingRecommendationComplex($complexIdx);
+
+
             http_response_code(200);
-            $res->result = testPost($req->name);
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
-            $res->message = "테스트 성공";
+            $res->message = "단지 상세정보";
+            echo json_encode($res);
+            break;
+
+        case "agencyDetail":
+
+            $agencyIdx=$vars["agencyIdx"];
+
+            if(!isValidAgencyIdx($agencyIdx)){
+                http_response_code(200);
+                $res->isSuccess = False;
+                $res->code = 200;
+                $res->message = "검색 결과가 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
+
+            //단지 정보 쿼리 여러개 쓰기 위해 분할.
+            $result=[];
+            $result['agencyInfo'] = agencyDetail($agencyIdx); //중개사 정보
+            $result['agencyMember'] = agencyMember($agencyIdx); //중개사 멤버
+
+            http_response_code(200);
+            $res->result = $result;
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "중개사무소 상세정보보기";
             echo json_encode($res, JSON_NUMERIC_CHECK);
             break;
     }
+
+
 } catch (\Exception $e) {
     return getSQLErrorException($errorLogs, $e, $req);
 }

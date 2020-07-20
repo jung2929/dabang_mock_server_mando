@@ -17,37 +17,37 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     /* ******************   Test   ****************** */
     // 지도 탭 관련
     $r->addRoute('GET', '/test/room/list', ['MapController', 'roomList']);
-    $r->addRoute('GET', '/test/complex/list', ['MapController', 'index']);
-    $r->addRoute('GET', '/test/agency/list', ['MapController', 'index']);
-    $r->addRoute('GET', '/test/room/detail/{roomIdx}', ['MapController', 'index']);
-    $r->addRoute('GET', '/test/complex/detail/{complexIdx}', ['MapController', 'index']);
-    $r->addRoute('GET', '/test/agency/detail/{agencyIdx}', ['MapController', 'index']);
-    $r->addRoute('GET', '/test/geoFence', ['MapController', 'test']);
+    $r->addRoute('GET', '/test/complex/list', ['MapController', 'complexList']);
+    $r->addRoute('GET', '/test/agency/list', ['MapController', 'agencyList']);
+    $r->addRoute('GET', '/test/room/detail/{roomIdx}', ['MapController', 'roomDetail']);
+    $r->addRoute('GET', '/test/complex/detail/{complexIdx}', ['MapController', 'complexDetail']);
+    $r->addRoute('GET', '/test/agency/detail/{agencyIdx}', ['MapController', 'agencyDetail']);
+    $r->addRoute('GET', '/test/geoFence', ['MapController', 'geoFence']);
     // 홈 탭 관련
-    $r->addRoute('GET', '/test/room/interest/{userIdx}', ['HomeController', 'index']);
-    $r->addRoute('GET', '/test/complex/interest/{userIdx}', ['HomeController', 'index']);
-    $r->addRoute('GET', '/test/content', ['HomeController', 'index']);
-    $r->addRoute('GET', '/test/subscription-center', ['HomeController', 'test']);
+    $r->addRoute('GET', '/test/room/interest/{userIdx}', ['HomeController', 'homeRoomInterest']);
+    $r->addRoute('GET', '/test/complex/interest/{userIdx}', ['HomeController', 'homeComplexInterest']);
+    $r->addRoute('GET', '/test/content', ['HomeController', 'homeContent']);
+    $r->addRoute('GET', '/test/subscription-center', ['HomeController', 'homeSubscriptionCenter']);
     // 홈-검색 탭 관련
-    $r->addRoute('GET', '/test/search/list', ['SearchController', 'test']);
-    $r->addRoute('GET', '/test/search/recently/{userIdx}', ['SearchController', 'test']);
-    $r->addRoute('DELETE', '/test/search/record/{userIdx}', ['SearchController', 'test']);
+    $r->addRoute('GET', '/test/search/list', ['SearchController', 'searchList']);
+    $r->addRoute('GET', '/test/search/recently/{userIdx}', ['SearchController', 'searchRecently']);
+    $r->addRoute('DELETE', '/test/search/record/{userIdx}', ['SearchController', 'deleteSearchRecord']);
     // 관심목록 탭 관련
-    $r->addRoute('GET', '/test/room/view/{userIdx}', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/complex/view/{userIdx}', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/room/like/{userIdx}', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/complex/like/{userIdx}', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/room/compare', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/room/question/{userIdx}', ['InterestController', 'test']);
-    $r->addRoute('GET', '/test/agency/call/{userIdx}', ['InterestController', 'test']);
+    $r->addRoute('GET', '/test/room/view/{userIdx}', ['InterestController', 'userRoomView']);
+    $r->addRoute('GET', '/test/complex/view/{userIdx}', ['InterestController', 'userComplexView']);
+    $r->addRoute('GET', '/test/room/like/{userIdx}', ['InterestController', 'userRoomLike']);
+    $r->addRoute('GET', '/test/complex/like/{userIdx}', ['InterestController', 'userComplexLike']);
+    $r->addRoute('GET', '/test/room/compare', ['InterestController', 'roomCompare']);
+    $r->addRoute('GET', '/test/room/question/{userIdx}', ['InterestController', 'userRoomQuestion']);
+    $r->addRoute('GET', '/test/agency/call/{userIdx}', ['InterestController', 'userAgencyCall']);
     // 유저 관련
-    $r->addRoute('GET', '/test/user', ['UserController', 'test']);
-    $r->addRoute('POST', '/test/user', ['UserController', 'test']);
-    $r->addRoute('GET', '/test/kakao-login', ['UserController', 'test']);
-    $r->addRoute('GET', '/test/facebook-login', ['UserController', 'test']);
+    $r->addRoute('GET', '/test/user', ['UserController', 'userInfo']);
+    $r->addRoute('POST', '/test/user', ['UserController', 'createUser']);
+    $r->addRoute('GET', '/test/kakao-login', ['UserController', 'kakaoLogin']);
+    $r->addRoute('GET', '/test/facebook-login', ['UserController', 'facebookLogin']);
     // 더보기 기타 관련
-    $r->addRoute('GET', '/test/notice', ['EtcController', 'test']);
-    $r->addRoute('GET', '/test/side-app', ['EtcController', 'test']);
+    $r->addRoute('GET', '/test/notice', ['EtcController', 'noticeList']);
+    $r->addRoute('GET', '/test/side-app', ['EtcController', 'sideApp']);
 
 
     // *************완성된 API, 더미데이터 넣어 놓음**************
@@ -87,7 +87,8 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
 
     $r->addRoute('GET', '/jwt', ['DummyController', 'validateJwt']);
     $r->addRoute('POST', '/jwt', ['DummyController', 'createJwt']);
-    
+    $r->addRoute('GET', '/', ['DummyController', 'index']);
+
 
 
 //    $r->addRoute('GET', '/users', 'get_all_users_handler');

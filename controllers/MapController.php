@@ -28,89 +28,64 @@ try {
          * 마지막 수정 날짜 : 19.04.29
          */
         case "roomList":
-            http_response_code(200);
-//            $res->result = test();
-//            $res->isSuccess = TRUE;
-//            $res->code = 100;
-//            $res->message = "테스트 성공";
-//            echo json_encode($res, JSON_NUMERIC_CHECK);
-//            break;
-            echo "xxxx";
 
-            echo "{
-    \"result\": [
-        {
-            \"roomIdx\": \"1\",
-            \"complexName\": \"씨티라이프61\",
-            \"price\": \"전세 1억9000\",
-            \"kindOfRoom\": \"투룸\",
-            \"thisFloor\": \"3층\"
-            \"exclusiveArea\": \"26.4㎡\",
-            \"maintenanceCost\": \"관리비 8만\",
-            \"roomSummary\": \"대치동 인테리어 특급 원룸\"
-            \"hashTag\": [
-                \"전세가능\",
-                \"분리형\"
-            ],
-            \"roomImg\":  [
-                \"image경로\",
-                \"image경로\"
-            ],
-            \"agencyIdx\": \"1\",
-            \"agencyName\": \"택스앤리얼티세무사부동산중개\"
-            \"agencyComment\": \"프리미엄 since 20.02.10\",
-            \"agencyBossPicture\": \"image경로\",
-            \"agencyRoomNum\": \"306개의 방\",
-            \"quickInquiry\": \"Y\",
-            \"roomNum\": \"225\",
-            \"checkedRoom\": \"20.07.04\"
-            \"plus\": \"Y\",
-            \"heart\": \"N\"
-        },
-        {
-            \"roomIdx\": \"2\",
-            \"price\": \"전세 1억9000\",
-            \"kindOfRoom\": \"투룸\",
-            \"thisFloor\": \"3층\"
-            \"exclusiveArea\": \"26.4㎡\",
-            \"maintenanceCost\": \"관리비 8만\",
-            \"roomSummary\": \"대치동 인테리어 특급 원룸\"
-            \"hashTag\": [
-                \"전세가능\",
-                \"분리형\"
-            ],
-            \"roomImg\":  [
-                \"image경로\",
-                \"image경로\"
-            ],
-            \"agencyIdx\": \"2\",
-            \"agencyName\": \"택스앤리얼티세무사부동산중개\"
-            \"agencyComment\": \"프리미엄 since 20.02.10\",
-            \"agencyBossPicture\": \"image경로\",
-            \"agencyRoomNum\": \"306개의 방\",
-            \"roomNum\": \"225\"
-            \"checkedRoom\": \"20.07.04\"
-            \"plus\": \"Y\",
-            \"heart\": \"N\"
-     }
-    ],
-    \"isSuccess\": true,
-    \"code\": 100,
-    \"message\": \"방 리스트 출력\"
-}";
+            http_response_code(200);
+            $res->result = test();
+            $res->isSuccess = TRUE;
+            $res->code = 100;
+            $res->message = "테스트 성공";
+            echo json_encode($res, JSON_NUMERIC_CHECK);
             break;
         /*
          * API No. 0
          * API Name : 테스트 Path Variable API
          * 마지막 수정 날짜 : 19.04.29
          */
-        case "testDetail":
+        case "roomDetail":
+
+            $roomIdx=$vars["roomIdx"];
+
+            //유효한 방 인덱스 인지 검사.
+            if(!isValidRoomIdx($roomIdx)){
+                http_response_code(200);
+                $res->result = roomDetail($roomIdx);
+                $res->isSuccess = TRUE;
+                $res->code = 200;
+                $res->message = "검색 결과가 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                break;
+            }
             http_response_code(200);
-            $res->result = testDetail($vars["testNo"]);
+
+            //방정보를 보여주기위해 여러 함수를 사용해 합쳐야 하기 때문에 리스트를 만듬.
+            $result=[];
+            $result['roomInfo'] = roomDetail($roomIdx); //방 정보
+
+            //단지에 포함된 방이라면 정보를 주고 아니라면 null값 반환.
+            if(!isValidRoomInComplex($roomIdx)){
+                $result['complexInfo']="null";
+            } else {
+                $result['complexInfo'] = ComplexInRoomDetail($roomIdx);
+            }
+
+            //옵션이 없으면 null값 반환
+            if(!isValidRoomOption($roomIdx)){
+                $result['option']="null";
+            } else {
+                $result['option'] = roomOption($roomIdx);
+            }
+            //보안장치가 없으면 null값 반환
+            if(!isValidRoomSecurity($roomIdx)){
+                $result['security']="null";
+            } else {
+                $result['security'] = roomSecurity($roomIdx);
+            }
+
+            $res->result = $result;
             $res->isSuccess = TRUE;
             $res->code = 100;
-            $res->message = "테스트 성공";
-            echo json_encode($res, JSON_NUMERIC_CHECK);
+            $res->message = "방 상세정보";
+            echo json_encode($res);
             break;
         /*
          * API No. 0

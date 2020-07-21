@@ -31,7 +31,7 @@ function roomDetail($roomIdx)
        COALESCE(SN.securityNum, \"0\") as securityNum,
        COALESCE(R.monthlyRent, \"null\") as monthlyRent,
        COALESCE(R.lease, \"null\") as lease,
-       COALESCE(R.maintenanceCost, \"null\") as maintenanceCost,
+       case when R.maintenanceCost=0 then 'null' else concat(R.maintenanceCost,'만원') end as maintenanceCost,
        COALESCE(R.parking, \"null\") as parking,
        COALESCE(R.shortTermRental, \"null\") as shortTermRental,
        COALESCE(R.monthlyLivingExpenses, \"null\") as monthlyLivingExpenses,
@@ -408,6 +408,44 @@ where roomAdress Like concat('%',:dong,'%')";
     return $res[0][0];
 }
 
+function dongComplexNum($dong)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Complex
+where complexAdress Like concat('%',:dong,'%')";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':dong',$dong,PDO::PARAM_STR);
+    $st->execute();
+    //    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function dongAgencyNum($dong)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Agency
+where agencyAdress like concat('%',:dong,'%') and isDeleted='N'";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':dong',$dong,PDO::PARAM_STR);
+    $st->execute();
+    //    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
 function complexRoomNum($complexIdx)
 {
     $pdo = pdoSqlConnect();
@@ -446,6 +484,58 @@ where agencyIdx=:agencyIdx";
     return $res[0][0];
 }
 
+function rangeComplexNum($roomType,$latitude,$longitude,$scale)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Complex
+where
+kindOfBuilding regexp :roomType
+and isDeleted = 'N'
+and latitude >= (:latitude-(:scale/3))
+and latitude <= (:latitude+(:scale/3))
+and longitude >= (:longitude-(:scale/3))
+and longitude <= (:longitude+(:scale/3))";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
+    $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
+    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function rangeAgencyNum($latitude,$longitude,$scale)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Agency
+where
+latitude >= (:latitude-(:scale/3))
+and latitude <= (:latitude+(:scale/3))
+and longitude >= (:longitude-(:scale/3))
+and longitude <= (:longitude+(:scale/3))
+";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
+    $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
+    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
 
 function rangeRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale)
 {
@@ -463,10 +553,10 @@ on ARN.agencyIdx = A.agencyIdx
 where kindOfRoom regexp :roomType and left(maintenanceCost, 1) >= :maintenanceCostMin and left(maintenanceCost, 1) <= :maintenanceCostMax
 and left(exclusiveArea, char_length(exclusiveArea)-1) >= :exclusiveAreaMin and left(exclusiveArea, char_length(exclusiveArea)-1) <= :exclusiveAreaMax
 and R.isDeleted = 'N'
-and latitude >= (:latitude-(:scale/3))
-and latitude <= (:latitude+(:scale/3))
-and longitude >= (:longitude-(:scale/3))
-and longitude <= (:longitude+(:scale/3))";
+and R.latitude >= (:latitude-(:scale/3))
+and R.latitude <= (:latitude+(:scale/3))
+and R.longitude >= (:longitude-(:scale/3))
+and R.longitude <= (:longitude+(:scale/3))";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
@@ -477,7 +567,6 @@ and longitude <= (:longitude+(:scale/3))";
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
     $st->bindParam(':scale',$scale,PDO::PARAM_STR);
-
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
     $res = $st->fetchAll();
@@ -488,6 +577,261 @@ and longitude <= (:longitude+(:scale/3))";
     return $res[0][0];
 }
 
+function dongComplexList($roomType,$dong)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(C.complexIdx, \"null\")     as complexIdx,
+       COALESCE(C.complexName, \"null\")     as complexName,
+       COALESCE(C.complexAdress, \"null\")     as complexAdress,
+       COALESCE(CI.complexImg, \"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as complexImg,
+       COALESCE(RN.roomNum, \"0\")     as roomNum,
+       COALESCE(C.kindOfBuilding, \"null\")     as kindOfBuilding,
+       COALESCE(concat(C.householdNum,'세대'), \"null\")     as householdNum,
+       COALESCE(C.completionDate, \"null\")     as completionDate
+from Complex as C
+         left join (select COM.complexName,
+                           COM.complexAdress,
+                           COM.kindOfBuilding,
+                           COM.householdNum,
+                           COM.completionDate,
+                           CI.complexIdx,
+                           CI.complexImg as complexImg
+                    from (select complexIdx, Max(createdAt) as createdAt
+                          from ComplexImg
+                          group by complexIdx) as C
+                             left join ComplexImg as CI
+                                       on CI.complexIdx = CI.complexIdx and C.createdAt = CI.createdAt
+                             left join Complex as COM
+                                       on COM.complexIdx = CI.complexIdx
+) as CI
+                   on CI.complexIdx = C.complexIdx
+         left join (select complexIdx, count(complexIdx) as roomNum
+                    from RoomInComplex
+                    group by complexIdx) as RN
+                   on RN.complexIdx = C.complexIdx
+where C.isDeleted = \"N\"
+and C.complexAdress like concat('%',:dong,'%')
+and C.kindOfBuilding regexp :roomType";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':dong',$dong,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+function dongAgencyList($dong)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select A.agencyIdx,
+       COALESCE(A.agencyName,'null') as agencyName,
+       COALESCE(A.agencyAdress,'null') as agencyAdress,
+       A.agencyComment,
+       AM.agencyMemberProfileImg,
+       A.latitude,
+       A.longitude
+from Agency as A
+         left join (select agencyIdx,
+                           COALESCE(agencyMemberProfileImg,
+                                    \"gs://allroom.appspot.com/default/프로필 기본사진.PNG\") as agencyMemberProfileImg
+                    from AgencyMember
+                    where agencyMemberPosition = \"대표공인중개사\") as AM
+                   on AM.agencyIdx = A.agencyIdx
+where A.agencyAdress like concat('%',:dong,'%')";
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':dong',$dong,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        //한줄 읽은 행에 거기에 맞는 해시태그 추가
+        $pdo2 = pdoSqlConnect();
+        $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
+       COALESCE(R.monthlyRent, \"null\") as monthlyRent,
+       COALESCE(R.lease, \"null\") as lease,
+       COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
+       COALESCE(R.thisFloor, \"null\") as thisFloor,
+       COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
+       COALESCE(RI.roomImg, \"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as exclusiveArea
+from Room as R
+left join AgencyRoom as AR
+on R.roomIdx = AR.roomIdx
+left join (select CI.roomIdx, CI.roomImg as roomImg
+from (select roomIdx, Max(createdAt) as createdAt
+from RoomImg
+group by roomIdx) as C
+left join RoomImg as CI
+on CI.roomIdx = CI.roomIdx and C.createdAt = CI.createdAt) as RI
+on RI.roomIdx=R.roomIdx
+where AR.agencyIdx = :agencyIdx and R.isDeleted = \"N\" and R.sold =\"N\"
+limit 2";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':agencyIdx',$row['agencyIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_ASSOC);
+        $res = $st2->fetchAll();
+
+
+        if($res){
+            $row["roomlist"] = $res;
+        }else{
+            $row["roomlist"] = 'null';
+        }
+
+        $result[] = $row;
+
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+}
+
+
+function rangeAgencyList($latitude,$longitude,$scale)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select A.agencyIdx as agencyIdx,
+       COALESCE(A.agencyName,'null') as agencyName,
+       COALESCE(A.agencyAdress,'null') as agencyAdress,
+       A.agencyComment as agencyComment, 
+       AM.agencyMemberProfileImg as agencyMemberProfileImg,
+       A.latitude as latitude,
+       A.longitude as longitude
+from Agency as A
+         left join (select agencyIdx,
+                           COALESCE(agencyMemberProfileImg,
+                                    \"gs://allroom.appspot.com/default/프로필 기본사진.PNG\") as agencyMemberProfileImg
+                    from AgencyMember
+                    where agencyMemberPosition = \"대표공인중개사\") as AM
+                   on AM.agencyIdx = A.agencyIdx
+where A.isDeleted =\"N\"
+and A.latitude >= (:latitude-(:scale/3))
+and A.latitude <= (:latitude+(:scale/3))
+and A.longitude >= (:longitude-(:scale/3))
+and A.longitude <= (:longitude+(:scale/3))";
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
+    $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
+    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        $pdo2 = pdoSqlConnect();
+        $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
+       COALESCE(R.monthlyRent, \"null\") as monthlyRent,
+       COALESCE(R.lease, \"null\") as lease,
+       COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
+       COALESCE(R.thisFloor, \"null\") as thisFloor,
+       COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
+       COALESCE(RI.roomImg, \"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as exclusiveArea
+from Room as R
+left join AgencyRoom as AR
+on R.roomIdx = AR.roomIdx
+left join (select CI.roomIdx, CI.roomImg as roomImg
+from (select roomIdx, Max(createdAt) as createdAt
+from RoomImg
+group by roomIdx) as C
+left join RoomImg as CI
+on CI.roomIdx = CI.roomIdx and C.createdAt = CI.createdAt) as RI
+on RI.roomIdx=R.roomIdx
+where AR.agencyIdx = :agencyIdx and R.isDeleted = \"N\" and R.sold =\"N\"
+limit 2";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':agencyIdx',$row['agencyIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_ASSOC);
+        $res = $st2->fetchAll();
+
+
+        if($res){
+            $row["roomlist"] = $res;
+        }else{
+            $row["roomlist"] = 'null';
+        }
+
+        $result[] = $row;
+
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+}
+
+
+
+function rangeComplexList($roomType,$latitude,$longitude,$scale)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(C.complexIdx, \"null\")     as complexIdx,
+       COALESCE(C.complexName, \"null\")     as complexName,
+       COALESCE(C.complexAdress, \"null\")     as complexAdress,
+       COALESCE(CI.complexImg, \"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as complexImg,
+       COALESCE(RN.roomNum, \"0\")     as roomNum,
+       COALESCE(C.kindOfBuilding, \"null\")     as kindOfBuilding,
+       COALESCE(concat(C.householdNum,'세대'), \"null\")     as householdNum,
+       COALESCE(C.completionDate, \"null\")     as completionDate
+from Complex as C
+         left join (select COM.complexName,
+                           COM.complexAdress,
+                           COM.kindOfBuilding,
+                           COM.householdNum,
+                           COM.completionDate,
+                           CI.complexIdx,
+                           CI.complexImg as complexImg
+                    from (select complexIdx, Max(createdAt) as createdAt
+                          from ComplexImg
+                          group by complexIdx) as C
+                             left join ComplexImg as CI
+                                       on CI.complexIdx = CI.complexIdx and C.createdAt = CI.createdAt
+                             left join Complex as COM
+                                       on COM.complexIdx = CI.complexIdx
+) as CI
+                   on CI.complexIdx = C.complexIdx
+         left join (select complexIdx, count(complexIdx) as roomNum
+                    from RoomInComplex
+                    group by complexIdx) as RN
+                   on RN.complexIdx = C.complexIdx
+where C.isDeleted = \"N\"
+and C.kindOfBuilding regexp :roomType
+and C.latitude >= (:latitude-(:scale/3))
+and C.latitude <= (:latitude+(:scale/3))
+and C.longitude >= (:longitude-(:scale/3))
+and C.longitude <= (:longitude+(:scale/3))";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
+    $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
+    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
 
 
 function dongRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$dong)
@@ -499,7 +843,7 @@ function dongRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusi
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
-       COALESCE(concat('관리비 ',left(R.maintenanceCost,2)), \"null\") as maintenanceCost,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
        COALESCE(R.roomSummary, \"null\") as roomSummary,
        COALESCE(R.latitude, \"null\") as latitude,
        COALESCE(R.longitude, \"null\") as longitude,
@@ -523,7 +867,7 @@ from Room as R
 left join (select agencyIdx, count(agencyIdx) as agencyRoomNum from AgencyRoom
 group by agencyIdx) as ARN
 on ARN.agencyIdx = A.agencyIdx
-where kindOfRoom regexp :roomType and left(maintenanceCost, 5) >= :maintenanceCostMin and left(maintenanceCost, 5) <= :maintenanceCostMax
+where kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
 and left(exclusiveArea, char_length(exclusiveArea)-1) >= :exclusiveAreaMin and left(exclusiveArea, char_length(exclusiveArea)-1) <= :exclusiveAreaMax
 and R.roomAdress Like concat('%',:dong,'%') and R.isDeleted = 'N'
 order by R.plus desc";
@@ -592,6 +936,8 @@ order by R.plus desc";
     return $result;
 }
 
+
+
 function complexRoomList($complexIdx)
 {
     $pdo = pdoSqlConnect();
@@ -601,7 +947,7 @@ function complexRoomList($complexIdx)
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
-       COALESCE(concat('관리비 ',left(R.maintenanceCost,2)), \"null\") as maintenanceCost,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
        COALESCE(R.roomSummary, \"null\") as roomSummary,
        COALESCE(R.latitude, \"null\") as latitude,
        COALESCE(R.longitude, \"null\") as longitude,
@@ -699,7 +1045,7 @@ function agencyRoomList($agencyIdx)
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
-       COALESCE(concat('관리비 ',left(R.maintenanceCost,2)), \"null\") as maintenanceCost,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
        COALESCE(R.roomSummary, \"null\") as roomSummary,
        COALESCE(R.latitude, \"null\") as latitude,
        COALESCE(R.longitude, \"null\") as longitude,
@@ -795,7 +1141,7 @@ function rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclus
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
-       COALESCE(concat('관리비 ',left(R.maintenanceCost,2)), \"null\") as maintenanceCost,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만원') end as maintenanceCost,
        COALESCE(R.roomSummary, \"null\") as roomSummary,
        COALESCE(R.latitude, \"null\") as latitude,
        COALESCE(R.longitude, \"null\") as longitude,
@@ -819,13 +1165,13 @@ from Room as R
 left join (select agencyIdx, count(agencyIdx) as agencyRoomNum from AgencyRoom
 group by agencyIdx) as ARN
 on ARN.agencyIdx = A.agencyIdx
-where kindOfRoom regexp :roomType and left(maintenanceCost, 5) >= :maintenanceCostMin and left(maintenanceCost, 5) <= :maintenanceCostMax
+where kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
 and left(exclusiveArea, char_length(exclusiveArea)-1) >= :exclusiveAreaMin and left(exclusiveArea, char_length(exclusiveArea)-1) <= :exclusiveAreaMax
 and R.isDeleted = 'N'
-and latitude >= (:latitude-(:scale/3))
-and latitude <= (:latitude+(:scale/3))
-and longitude >= (:longitude-(:scale/3))
-and longitude <= (:longitude+(:scale/3))
+and R.latitude >= (:latitude-(:scale/3))
+and R.latitude <= (:latitude+(:scale/3))
+and R.longitude >= (:longitude-(:scale/3))
+and R.longitude <= (:longitude+(:scale/3))
 order by R.plus desc";
 
     $st = $pdo->prepare($query1);
@@ -909,14 +1255,12 @@ function testPost($name)
 }
 
 
-function isValidUser($id, $pw){
+function isValidUser($userEmail){
     $pdo = pdoSqlConnect();
-    $query = "SELECT EXISTS(SELECT * FROM User WHERE userId= ? AND userPw = ?) AS exist;";
-
+    $query = "SELECT EXISTS(SELECT * FROM User WHERE userEmail= ? AND isDeleted = 'N') AS exist;";
 
     $st = $pdo->prepare($query);
-    //    $st->execute([$param,$param]);
-    $st->execute([$id, $pw]);
+    $st->execute([$userEmail]);
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 

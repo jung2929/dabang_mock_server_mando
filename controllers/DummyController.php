@@ -98,33 +98,151 @@ try {
 }";
             break;
 
+
+        case "complexRoomList":
+            echo "{
+    \"result\": {
+        \"roomNum\": \"2\",
+        \"roomList\": [
+            {
+                \"roomIdx\": \"3\",
+                \"monthlyRent\": \"null\",
+                \"lease\": \"14억5000\",
+                \"kindOfRoom\": \"아파트\",
+                \"thisFloor\": \"중층\",
+                \"exclusiveArea\": \"145.34㎡\",
+                \"maintenanceCost\": \"null\",
+                \"roomSummary\": \"실매물, 학원가 인근 아파트\",
+                \"latitude\": \"37.5005140000\",
+                \"longitude\": \"127.0634170000\",
+                \"agencyIdx\": \"3\",
+                \"agencyName\": \"중앙부동산중개법인\",
+                \"agencyComment\": \"null\",
+                \"agencyBossPhone\": \"02-568-5210\",
+                \"agencyRoomNum\": \"2\",
+                \"quickInquiry\": \"N\",
+                \"checkedRoom\": \"N\",
+                \"plus\": \"Y\",
+                \"heart\": \"N\",
+                \"hashTag\": \"null\",
+                \"roomImg\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\"
+            },
+            {
+                \"roomIdx\": \"4\",
+                \"monthlyRent\": \"null\",
+                \"lease\": \"15억\",
+                \"kindOfRoom\": \"아파트\",
+                \"thisFloor\": \"중층\",
+                \"exclusiveArea\": \"145.34㎡\",
+                \"maintenanceCost\": \"null\",
+                \"roomSummary\": \"대치동, 학원가 하이캐슬\",
+                \"latitude\": \"37.5005140000\",
+                \"longitude\": \"127.0634170000\",
+                \"agencyIdx\": \"3\",
+                \"agencyName\": \"중앙부동산중개법인\",
+                \"agencyComment\": \"null\",
+                \"agencyBossPhone\": \"02-568-5210\",
+                \"agencyRoomNum\": \"2\",
+                \"quickInquiry\": \"N\",
+                \"checkedRoom\": \"N\",
+                \"plus\": \"N\",
+                \"heart\": \"N\",
+                \"hashTag\": \"null\",
+                \"roomImg\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\"
+            }
+        ]
+    },
+    \"isSuccess\": true,
+    \"code\": 100,
+    \"message\": \"방 리스트 출력\"
+}";
+            break;
+
+        case "agencyRoomList":
+            echo "{
+    \"result\": {
+        \"roomNum\": \"2\",
+        \"roomList\": [
+            {
+                \"roomIdx\": \"3\",
+                \"monthlyRent\": \"null\",
+                \"lease\": \"14억5000\",
+                \"kindOfRoom\": \"아파트\",
+                \"thisFloor\": \"중층\",
+                \"exclusiveArea\": \"145.34㎡\",
+                \"maintenanceCost\": \"null\",
+                \"roomSummary\": \"실매물, 학원가 인근 아파트\",
+                \"latitude\": \"37.5005140000\",
+                \"longitude\": \"127.0634170000\",
+                \"agencyIdx\": \"3\",
+                \"agencyName\": \"중앙부동산중개법인\",
+                \"agencyComment\": \"null\",
+                \"agencyBossPhone\": \"02-568-5210\",
+                \"agencyRoomNum\": \"2\",
+                \"quickInquiry\": \"N\",
+                \"checkedRoom\": \"N\",
+                \"plus\": \"Y\",
+                \"heart\": \"N\",
+                \"hashTag\": \"null\",
+                \"roomImg\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\"
+            },
+            {
+                \"roomIdx\": \"4\",
+                \"monthlyRent\": \"null\",
+                \"lease\": \"15억\",
+                \"kindOfRoom\": \"아파트\",
+                \"thisFloor\": \"중층\",
+                \"exclusiveArea\": \"145.34㎡\",
+                \"maintenanceCost\": \"null\",
+                \"roomSummary\": \"대치동, 학원가 하이캐슬\",
+                \"latitude\": \"37.5005140000\",
+                \"longitude\": \"127.0634170000\",
+                \"agencyIdx\": \"3\",
+                \"agencyName\": \"중앙부동산중개법인\",
+                \"agencyComment\": \"null\",
+                \"agencyBossPhone\": \"02-568-5210\",
+                \"agencyRoomNum\": \"2\",
+                \"quickInquiry\": \"N\",
+                \"checkedRoom\": \"N\",
+                \"plus\": \"N\",
+                \"heart\": \"N\",
+                \"hashTag\": \"null\",
+                \"roomImg\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\"
+            }
+        ]
+    },
+    \"isSuccess\": true,
+    \"code\": 100,
+    \"message\": \"방 리스트 출력\"
+}";
+            break;
+
         case "complexList":
             echo "{
     \"result\": {
-             \"complexNum\": \"50\",
-             \"complexList\" : 
-[
-        {
-            \"complexIdx\": \"1\",
-            \"complexName\": \"씨티라이프61\",
-            \"complexAdress\": \"서울특별시 강남구 삼성동\",
-            \"complexImg\": \"image경로\",
-            \"roomNum\": \"2\",
-            \"kindOfBuilding\": \"오피스텔\",
-            \"householdNum\": \"63세대\",
-            \"completionDate\": \"2014.07\"
-        },
-        {
-            \"complexIdx\": \"2\",
-            \"complexName\": \"얼씨구나61\",
-            \"complexAdress\": \"서울특별시 강남구 삼성동\",
-            \"complexImg\": \"image경로\",
-            \"roomNum\": \"2\",
-            \"kindOfBuilding\": \"오피스텔\",
-            \"householdNum\": \"61세대\",
-            \"completionDate\": \"2014.07\"
-        }
-    ]
+        \"complexNum\": \"2\",
+        \"complexList\": [
+            {
+                \"complexIdx\": \"4\",
+                \"complexName\": \"하이캐슬\",
+                \"complexAdress\": \"서울특별시 강남구 대치동\",
+                \"complexImg\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\",
+                \"roomNum\": \"2\",
+                \"kindOfBuilding\": \"아파트\",
+                \"householdNum\": \"67세대\",
+                \"completionDate\": \"2005.01\"
+            },
+            {
+                \"complexIdx\": \"3\",
+                \"complexName\": \"한티\",
+                \"complexAdress\": \"서울특별시 강남구 대치동\",
+                \"complexImg\": \"gs://allroom.appspot.com/complex/1/complexImg/c1-3.PNG\",
+                \"roomNum\": \"0\",
+                \"kindOfBuilding\": \"아파트\",
+                \"householdNum\": \"22세대\",
+                \"completionDate\": \"2004.07\"
+            }
+        ]
     },
     \"isSuccess\": true,
     \"code\": 100,
@@ -139,63 +257,81 @@ try {
         case "agencyList":
             echo "{
     \"result\": {
-            \"agencyNum\": \"2\",
-            \"agencyList\": [
-        {
-            \"agencyIdx\": \"1\",
-            \"agencyName\": \"강남방공인중개사사무소\",
-            \"adress\": \"서울특별시 강남구 삼성동\",
-            \"agencyComment\": \"터치 한 번으로 편리하게 간편문의\"
-            \"agencyBossPicture\": \"image경로\",
-            \"roomList\": [
-                          {
-                           \"roomImg\": \"image경로\",
-                           \"price\": \"월세 1000/75\",
-                           \"kindOfRoom\": \"원룸\",
-                           \"thisFloor\": \"2층\",
-                           \"exclusiveArea\": \"26.4㎡\",
-                           \"maintenanceCost\": \"관리비 5만\"
-                          },
-                          {
-                           \"roomImg\": \"image경로\",
-                           \"price\": \"월세 1000/75\",
-                           \"kindOfRoom\": \"원룸\",
-                           \"thisFloor\": \"2층\",
-                           \"exclusiveArea\": \"26.4㎡\",
-                           \"maintenanceCost\": \"관리비 5만\"
-                          }
-                         ]
-        },
-        {
-            \"agencyIdx\": \"1\",
-            \"agencyName\": \"강남방공인중개사사무소\",
-            \"adress\": \"서울특별시 강남구 삼성동\",
-            \"agencyComment\": \"터치 한 번으로 편리하게 간편문의\"
-            \"agencyBossPicture\": \"image경로\",
-            \"roomList\": [
-                          {
-                           \"roomImg\": \"image경로\",
-                           \"price\": \"월세 1000/75\",
-                           \"kindOfRoom\": \"원룸\",
-                           \"thisFloor\": \"2층\",
-                           \"exclusiveArea\": \"26.4㎡\",
-                           \"maintenanceCost\": \"관리비 5만\"
-                          },
-                          {
-                           \"roomImg\": \"image경로\",
-                           \"price\": \"월세 1000/75\",
-                           \"kindOfRoom\": \"원룸\",
-                           \"thisFloor\": \"2층\",
-                           \"exclusiveArea\": \"26.4㎡\",
-                           \"maintenanceCost\": \"관리비 5만\"
-                          }
-                         ]
-        }
-    ]
+        \"agencyNum\": \"3\",
+        \"agencyList\": [
+            {
+                \"agencyIdx\": \"1\",
+                \"agencyName\": \"대치SK공인중개사사무소\",
+                \"agencyAdress\": \"서울특별시 강남구 대치동 1029 대치 SK뷰아파트 근린생활시설동 102호 대치SK공인중개사사무소\",
+                \"agencyComment\": \"간편문의를 사용하는 중개사무소입니다.\",
+                \"agencyMemberProfileImg\": \"gs://allroom.appspot.com/default/프로필 기본사진.PNG\",
+                \"latitude\": \"37.5041600000\",
+                \"longitude\": \"127.0522470000\",
+                \"roomlist\": [
+                    {
+                        \"roomIdx\": \"1\",
+                        \"monthlyRent\": \"null\",
+                        \"lease\": \"2억1000\",
+                        \"kindOfRoom\": \"원룸\",
+                        \"thisFloor\": \"4층\",
+                        \"exclusiveArea\": \"gs://allroom.appspot.com/Room/1/r1-3.PNG\",
+                        \"maintenanceCost\": \"관리비 7만원\"
+                    },
+                    {
+                        \"roomIdx\": \"2\",
+                        \"monthlyRent\": \"null\",
+                        \"lease\": \"1억8000\",
+                        \"kindOfRoom\": \"오피스텔\",
+                        \"thisFloor\": \"5층\",
+                        \"exclusiveArea\": \"gs://allroom.appspot.com/Room/2/r2-4.png\",
+                        \"maintenanceCost\": \"관리비 7만원\"
+                    }
+                ]
+            },
+            {
+                \"agencyIdx\": \"2\",
+                \"agencyName\": \"즐겨찾기공인중개사사무소\",
+                \"agencyAdress\": \"서울특별시 강남구 도산대로 34길36 1층(논현동)\",
+                \"agencyComment\": null,
+                \"agencyMemberProfileImg\": \"gs://allroom.appspot.com/default/프로필 기본사진.PNG\",
+                \"latitude\": \"37.5180120000\",
+                \"longitude\": \"127.0315110000\",
+                \"roomlist\": [
+                    {
+                        \"roomIdx\": \"3\",
+                        \"monthlyRent\": \"null\",
+                        \"lease\": \"14억5000\",
+                        \"kindOfRoom\": \"아파트\",
+                        \"thisFloor\": \"중층\",
+                        \"exclusiveArea\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\",
+                        \"maintenanceCost\": \"null\"
+                    },
+                    {
+                        \"roomIdx\": \"4\",
+                        \"monthlyRent\": \"null\",
+                        \"lease\": \"15억\",
+                        \"kindOfRoom\": \"아파트\",
+                        \"thisFloor\": \"중층\",
+                        \"exclusiveArea\": \"gs://allroom.appspot.com/default/방 기본이미지.PNG\",
+                        \"maintenanceCost\": \"null\"
+                    }
+                ]
+            },
+            {
+                \"agencyIdx\": \"3\",
+                \"agencyName\": \"중앙부동산중개법인\",
+                \"agencyAdress\": \"서울특별시 강남구 논현동\",
+                \"agencyComment\": null,
+                \"agencyMemberProfileImg\": \"gs://allroom.appspot.com/default/프로필 기본사진.PNG\",
+                \"latitude\": \"37.5135460000\",
+                \"longitude\": \"127.0315340000\",
+                \"roomlist\": \"null\"
+            }
+        ]
     },
     \"isSuccess\": true,
     \"code\": 100,
-    \"message\": \"중개사무소 리스트 출력\"
+    \"message\": \"중개사 리스트 출력\"
 }";
             break;
         case "homeRoomInterest":

@@ -1,7 +1,7 @@
 <?php
 require 'function.php';
 
-const JWT_SECRET_KEY = "TEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEYTEST_KEY";
+const JWT_SECRET_KEY = "AllRoomProject";
 
 $res = (Object)Array();
 header('Content-Type: json');

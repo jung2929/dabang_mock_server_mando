@@ -18,6 +18,232 @@ function test()
     return $res;
 }
 
+function searchRecently($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select C.regionName as regionName,
+       COALESCE(C.adress,'null') as adress,
+       COALESCE(C.tag,'null') as tag,
+       case when regionName like '%동' then 'gs://allroom.appspot.com/icon/지역명아이콘.PNG'
+       when regionName like '%역' then 'gs://allroom.appspot.com/icon/역 아이콘.PNG'
+       else 'gs://allroom.appspot.com/icon/아파트아이콘.PNG'
+       end as icon
+from((select C.searchLog as regionName , null as adress , null as tag, C.createdAt as createdAt
+from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
+where searchlog like '%동')
+union
+(select R.regionName, R.adress, S.stationLine as tag, R.createdAt  from
+(select searchlog as regionName , null as adress , createdAt
+from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
+where searchlog like '%역') as R
+left join Station as S
+on S.stationName = R.regionName)
+union
+(select R.regionName, C.complexAdress, C.kindOfbuilding, R.createdAt from
+(select C.searchlog as regionName , null as adress , null as tag, C.createdAt from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
+where not searchlog like  '%역' and not searchlog like  '%동') as R
+left join Complex as C
+on C.complexName = R.regionName)) as C
+order by createdAt desc
+limit 10";
+
+    $st = $pdo->prepare($query);
+    //    $st->execute([$param,$param]);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
+function searchList($keyWord)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select C.regionName as regionName,
+       COALESCE(C.adress,'null') as adress,
+       COALESCE(C.tag,'null') as tag,
+       case when regionName like '%동' then 'gs://allroom.appspot.com/icon/지역명아이콘.PNG'
+       when regionName like '%역' then 'gs://allroom.appspot.com/icon/역 아이콘.PNG'
+       else 'gs://allroom.appspot.com/icon/아파트아이콘.PNG'
+       end as icon
+from(
+(select complexName as regionName , complexAdress as adress , kindOfBuilding as tag from Complex where isDeleted='N')
+union
+(select dongAdress as regionName, null as adress, null as tag from Region where isDeleted='N')
+union
+(select stationName as regionName, null as adress, stationLine as tag from Station where isDeleted='N')) as C
+where C.regionName like concat('%',:keyWord,'%')
+order by icon desc
+limit 20";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':keyWord',$keyWord,PDO::PARAM_STR);
+    //    $st->execute([$param,$param]);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+function isSearchRecently($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserSearchLog WHERE userIdx=:userIdx AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+
+function homeEvent()
+{
+    $pdo = pdoSqlConnect();
+    $query = "select homeEventImg, homeEventUrl from HomeEvent
+where isDeleted=\"N\"
+order by createdAt desc
+limit 5";
+
+    $st = $pdo->prepare($query);
+    //    $st->execute([$param,$param]);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+function homeContent()
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(postImg,'gs://allroom.appspot.com/default/방 기본이미지.PNG') as postImg,
+       COALESCE(postUrl,\"null\") as postUrl,
+       COALESCE(postTitle,\"null\") as postTitle,
+       COALESCE(FORMAT(postViewCount , 0),\"0\") as postViewCount
+from NaverPost
+where isDeleted = \"N\"
+order by createdAt desc
+limit 5";
+
+    $st = $pdo->prepare($query);
+    //    $st->execute([$param,$param]);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
+function homeComplexInterest($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select UC.complexIdx,
+       COALESCE(C.complexName, \"null\")     as complexName,
+       COALESCE(CI.complexImg, \"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as complexImg,
+       COALESCE(concat(RN.roomNum,'개의 방'), \"0개의 방\")     as roomNum,
+       COALESCE(C.kindOfBuilding, \"null\")     as kindOfBuilding,
+       COALESCE(concat(C.householdNum,'세대'), \"null\")     as householdNum,
+       COALESCE(C.completionDate, \"null\")     as completionDate
+from
+(select complexIdx,createdAt,isDeleted from UserComplexLog where userIdx=:userIdx) as UC
+left join Complex as C
+on C.complexIdx = UC.complexIdx
+left join (select COM.complexName,
+                           COM.kindOfBuilding,
+                           COM.householdNum,
+                           COM.completionDate,
+                           CI.complexIdx,
+                           CI.complexImg as complexImg
+                    from (select complexIdx, Max(createdAt) as createdAt
+                          from ComplexImg
+                          group by complexIdx) as C
+                             left join ComplexImg as CI
+                                       on CI.complexIdx = CI.complexIdx and C.createdAt = CI.createdAt
+                             left join Complex as COM
+                                       on COM.complexIdx = CI.complexIdx
+) as CI
+                   on CI.complexIdx = C.complexIdx
+         left join (select complexIdx, count(complexIdx) as roomNum
+                    from RoomInComplex
+                    group by complexIdx) as RN
+                   on RN.complexIdx = C.complexIdx
+where UC.isDeleted = \"N\"
+order by UC.createdAt desc
+limit 5";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
+function homeRoomInterest($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select substring_index(U.searchLog,' ',-1) as searchLog,
+       COALESCE(concat(RN.roomNum,'개의 방'),'0개의 방') as roomNum,
+       COALESCE(R.dongImg,\"gs://allroom.appspot.com/default/방 기본이미지.PNG\") as dongImg,
+       replace(replace(U.roomType,'투쓰리룸','투ㆍ쓰리룸'),'|',',') as roomType
+from (select U.searchLog, U.createdAt, R.roomType from
+     (select searchLog, Max(createdAt) as createdAt
+      from UserSearchLog
+      where userIdx = :userIdx
+    group by searchLog) as U
+left join UserSearchLog as R
+on R.searchLog = U.searchLog and R.createdAt = U.createdAt) as U
+         left join Region as R
+                   on R.dongName = substring_index(U.searchLog,' ',-1)
+         left join (select substring_index(roomAdress, ' ', -1)        as dongName,
+                           count(substring_index(roomAdress, ' ', -1)) as roomNum
+                    from Room
+                    group by substring_index(roomAdress, ' ', -1)) as RN
+                   on R.dongName = RN.dongName
+where U.searchLog Like '%동'
+order by U.createdAt desc
+limit 5";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
 //READ
 function roomDetail($roomIdx)
 {

@@ -154,7 +154,11 @@ function addErrorLogs($errorLogs, $res, $body)
 
     $errorLogs->addError(json_encode($logData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-//        sendDebugEmail("Error : " . $req["REQUEST_METHOD"] . " " . $req["REQUEST_URI"] , "<pre>" . json_encode($logData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "</pre>");
+    $content=["Error : " . $req["REQUEST_METHOD"] . " " . $req["REQUEST_URI"] , "<pre>" . json_encode($logData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "</pre>"];
+
+    mailer("SkyTeam","jsungmin6@naver.com","jsungmin6@naver.com","ALLRoomRealServerError",implode($content) );
+
+    //sendDebugEmail("Error : " . $req["REQUEST_METHOD"] . " " . $req["REQUEST_URI"] , "<pre>" . json_encode($logData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "</pre>");
 }
 
 
@@ -172,4 +176,36 @@ function getLogs($path)
     }
 //        fpassthru($fp);
     fclose($fp);
+}
+
+function mailer($fname, $fmail, $to, $subject, $content, $type=0, $file="", $cc="", $bcc="")
+{
+    if ($type != 1) $content = nl2br($content);
+    // type : text=0, html=1, text+html=2
+    $mail = new PHPMailer(); // defaults to using php "mail()"
+    $mail->IsSMTP();
+    //   $mail->SMTPDebug = 2;
+    $mail->SMTPSecure = "ssl";
+    $mail->SMTPAuth = true;
+    $mail->Host = "smtp.naver.com";
+    $mail->Port = 465;
+    $mail->Username = "jsungmin6";
+    $mail->Password = "chlrkdxowp!0249";
+    $mail->CharSet = 'UTF-8';
+    $mail->From = $fmail;
+    $mail->FromName = $fname;
+    $mail->Subject = $subject;
+    $mail->AltBody = ""; // optional, comment out and test
+    $mail->msgHTML($content);
+    $mail->addAddress($to);
+    if ($cc)
+        $mail->addCC($cc);
+    if ($bcc)
+        $mail->addBCC($bcc);
+    if ($file != "") {
+        foreach ($file as $f) {
+            $mail->addAttachment($f['path'], $f['name']);
+        }
+    }
+    if ( $mail->send() );
 }

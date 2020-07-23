@@ -23,11 +23,16 @@ try {
             getLogs("./logs/errors.log");
             break;
         /*
-         * API No. 0
-         * API Name : 테스트 API
-         * 마지막 수정 날짜 : 19.04.29
+         * API No. 1
+         * API Name : 방 리스트 조회 API
+         * 마지막 수정 날짜 : 20.07.24
          */
         case "roomList":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
+
 
             //필수 쿼리스트링 받기
             $roomType=$_GET['roomType'];
@@ -69,12 +74,12 @@ try {
             $pattern_02 = "/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)/";
             if(isset($latitude)){
                 if (!preg_match($pattern_02, $latitude)) {
-                $res->isSuccess = FALSE;
-                $res->code = 212;
-                $res->message = "위도 양식이 틀렸습니다.";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
-            }}
+                    $res->isSuccess = FALSE;
+                    $res->code = 212;
+                    $res->message = "위도 양식이 틀렸습니다.";
+                    echo json_encode($res, JSON_NUMERIC_CHECK);
+                    break;
+                }}
 
 
             //경도 검사
@@ -158,6 +163,8 @@ try {
                 }
             }
 
+            $roomType=str_replace('투쓰리룸','투룸|쓰리룸',$roomType);
+
             //xx동으로 분류
             if($dong){
                 $result=[];
@@ -167,7 +174,7 @@ try {
                 if($result['roomNum']==0){
                     $result['roomList'] = "null";
                 } else {
-                    $result['roomList'] = dongRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$dong);
+                    $result['roomList'] = dongRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$dong,$userIdx);
                 }
 
                 http_response_code(200);
@@ -185,8 +192,8 @@ try {
                 $result['roomNum'] = rangeRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale);
 
                 //범위에 포함된 방이 없을 경우
-                if(rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale)){
-                    $result['roomList'] = rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale);
+                if(rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale,$userIdx)){
+                    $result['roomList'] = rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale,$userIdx);
                 } else {
                     $result['roomList'] = "null";
                 }
@@ -201,8 +208,17 @@ try {
             }
 
             break;
+        /*
+        * API No. 2
+        * API Name : 단지 리스트 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
 
         case "complexList":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
 
             //필수 쿼리스트링 받기
             $roomType=$_GET['roomType'];
@@ -285,6 +301,8 @@ try {
                 }
             }
 
+            $roomType=str_replace('투쓰리룸','투룸|쓰리룸',$roomType);
+
             //xx동으로 분류
             if($dong){
                 $result=[];
@@ -310,11 +328,11 @@ try {
             if($latitude and $longitude and $scale){
                 //범위내 포함된 방의 수
                 $result=[];
-                $result['complexNum'] = rangeComplexNum($roomType,$latitude,$longitude,$scale);
+                $result['complexNum'] = rangeComplexNum($roomType,$latitude,$longitude,$scale,$userIdx);
 
                 //범위에 포함된 방이 없을 경우
-                if(rangeComplexList($roomType,$latitude,$longitude,$scale)){
-                    $result['complexList'] = rangeComplexList($roomType,$latitude,$longitude,$scale);
+                if(rangeComplexList($roomType,$latitude,$longitude,$scale,$userIdx)){
+                    $result['complexList'] = rangeComplexList($roomType,$latitude,$longitude,$scale,$userIdx);
                 } else {
                     $result['complexList'] = "null";
                 }
@@ -329,6 +347,12 @@ try {
             }
 
             break;
+
+        /*
+        * API No. 3
+        * API Name : 중개사무소 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
 
 
         case "agencyList":
@@ -436,8 +460,18 @@ try {
 
             break;
 
+        /*
+        * API No. 7
+        * API Name : 단지에 포함된 방 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
+
 
         case "complexRoomList":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
 
             $complexIdx=$vars['complexIdx'];
 
@@ -451,19 +485,9 @@ try {
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 break;
             }
-            //단지내 포함된 방의 수
-            $result=[];
-            $result['roomNum'] = complexRoomNum($complexIdx);
-
-            //단지에 포함된 방이 없을 경우
-            if(complexRoomList($complexIdx)){
-                $result['roomList'] = complexRoomList($complexIdx);;
-            } else {
-                $result['roomList'] = "null";
-            }
 
             http_response_code(200);
-            $res->result = $result;
+            $res->result = complexRoomList($complexIdx,$userIdx);
             $res->isSuccess = TRUE;
             $res->code = 100;
             $res->message = "방 리스트 출력";
@@ -471,12 +495,17 @@ try {
             break;
 
         /*
-         * API No. 0
-         * API Name : 테스트 Path Variable API
-         * 마지막 수정 날짜 : 19.04.29
-         */
+        * API No. 8
+        * API Name : 중개사무소에 포함된 방 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
 
         case "agencyRoomList":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
+
 
             $agencyIdx=$vars['agencyIdx'];
 
@@ -491,13 +520,13 @@ try {
                 break;
             }
 
-            //단지내 포함된 방의 수
+            //중개사내 포함된 방의 수
             $result=[];
             $result['roomNum'] = agencyRoomNum($agencyIdx);
 
-            //단지에 포함된 방이 없을 경우
-            if(agencyRoomList($agencyIdx)){
-                $result['roomList'] = agencyRoomList($agencyIdx);;
+            //중개사에 포함된 방이 없을 경우
+            if(agencyRoomList($agencyIdx,$userIdx)){
+                $result['roomList'] = agencyRoomList($agencyIdx,$userIdx);;
             } else {
                 $result['roomList'] = "null";
             }
@@ -510,9 +539,17 @@ try {
             echo json_encode($res);
             break;
 
-
+        /*
+        * API No. 4
+        * API Name : 방 상세정보 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
 
         case "roomDetail":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
 
             $roomIdx=$vars["roomIdx"];
 
@@ -529,7 +566,7 @@ try {
 
             //방정보를 보여주기위해 여러 함수를 사용해 합쳐야 하기 때문에 리스트를 만듬.
             $result=[];
-            $result['roomInfo'] = roomDetail($roomIdx); //방 정보
+            $result['roomInfo'] = roomDetail($roomIdx,$userIdx); //방 정보
 
             //단지에 포함된 방이라면 정보를 주고 아니라면 null값 반환.
             if(!isValidRoomInComplex($roomIdx)){
@@ -557,12 +594,18 @@ try {
             $res->message = "방 상세정보";
             echo json_encode($res);
             break;
+
         /*
-         * API No. 0
-         * API Name : 테스트 Body & Insert API
-         * 마지막 수정 날짜 : 19.04.29
-         */
+        * API No. 5
+        * API Name : 단지 상세정보 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
+
         case "complexDetail":
+
+            $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
+            $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
+            $userIdx=$userInfo->userIdx;
 
             $complexIdx=$vars["complexIdx"];
 
@@ -577,7 +620,7 @@ try {
 
             //단지 정보 쿼리 여러개 쓰기 위해 분할.
             $result=[];
-            $result['complexInfo'] = complexDetail($complexIdx); //단지 정보
+            $result['complexInfo'] = complexDetail($complexIdx,$userIdx); //단지 정보
             $result['sizeInfo'] = complexSizeInfo($complexIdx);
             $result['surroundingRecommendationComplex'] = surroundingRecommendationComplex($complexIdx);
 
@@ -589,6 +632,12 @@ try {
             $res->message = "단지 상세정보";
             echo json_encode($res);
             break;
+
+        /*
+        * API No. 6
+        * API Name : 중개사무소 상세정보 조회 API
+        * 마지막 수정 날짜 : 20.07.24
+        */
 
         case "agencyDetail":
 

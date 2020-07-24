@@ -10,90 +10,52 @@ date_default_timezone_set('Asia/Seoul');
 ini_set('default_charset', 'utf8mb4');
 
 //에러출력하게 하는 코드
-error_reporting(E_ALL); ini_set("display_errors", 1);
+//error_reporting(E_ALL); ini_set("display_errors", 1);
 
 //Main Server API
 $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) {
-    /* ******************   Test   ****************** */
-    // 지도 탭 관련
-    $r->addRoute('GET', '/test/room/list', ['MapController', 'roomList']);
-    $r->addRoute('GET', '/test/complex/list', ['MapController', 'complexList']);
-    $r->addRoute('GET', '/test/agency/list', ['MapController', 'agencyList']);
-    $r->addRoute('GET', '/test/room/detail/{roomIdx}', ['MapController', 'roomDetail']);
-    $r->addRoute('GET', '/test/complex/detail/{complexIdx}', ['MapController', 'complexDetail']);
-    $r->addRoute('GET', '/test/agency/detail/{agencyIdx}', ['MapController', 'agencyDetail']);
-    $r->addRoute('GET', '/test/room/complex/{complexIdx}', ['MapController', 'complexRoomList']);
-    $r->addRoute('GET', '/test/room/agency/{agencyIdx}', ['MapController', 'agencyRoomList']);
-    $r->addRoute('GET', '/test/geoFence', ['MapController', 'geoFence']);
-    // 홈 탭 관련
-    $r->addRoute('GET', '/test/room/interest/{userIdx}', ['HomeController', 'homeRoomInterest']);
-    $r->addRoute('GET', '/test/complex/interest/{userIdx}', ['HomeController', 'homeComplexInterest']);
-    $r->addRoute('GET', '/test/content', ['HomeController', 'homeContent']);
-    $r->addRoute('GET', '/test/subscription-center', ['HomeController', 'homeSubscriptionCenter']);
-    // 홈-검색 탭 관련
-    $r->addRoute('GET', '/test/search/list', ['SearchController', 'searchList']);
-    $r->addRoute('GET', '/test/search/recently/{userIdx}', ['SearchController', 'searchRecently']);
-    $r->addRoute('DELETE', '/test/search/record/{userIdx}', ['SearchController', 'deleteSearchRecord']);
-    // 관심목록 탭 관련
-    $r->addRoute('GET', '/test/room/view/{userIdx}', ['InterestController', 'userRoomView']);
-    $r->addRoute('GET', '/test/complex/view/{userIdx}', ['InterestController', 'userComplexView']);
-    $r->addRoute('GET', '/test/room/like/{userIdx}', ['InterestController', 'userRoomLike']);
-    $r->addRoute('GET', '/test/complex/like/{userIdx}', ['InterestController', 'userComplexLike']);
-    $r->addRoute('GET', '/test/room/compare', ['InterestController', 'roomCompare']);
-    $r->addRoute('GET', '/test/room/question/{userIdx}', ['InterestController', 'userRoomQuestion']);
-    $r->addRoute('GET', '/test/agency/call/{userIdx}', ['InterestController', 'userAgencyCall']);
-    // 유저 관련
-    $r->addRoute('GET', '/test/user', ['UserController', 'userInfo']);
-    $r->addRoute('POST', '/test/user', ['UserController', 'createUser']);
-    $r->addRoute('GET', '/test/kakao-login', ['UserController', 'kakaoLogin']);
-    $r->addRoute('GET', '/test/facebook-login', ['UserController', 'facebookLogin']);
-    // 더보기 기타 관련
-    $r->addRoute('GET', '/test/notice', ['EtcController', 'noticeList']);
-    $r->addRoute('GET', '/test/side-app', ['EtcController', 'sideApp']);
-    $r->addRoute('POST', '/jwt', ['MainController', 'createJwt']);
-//    $r->addRoute('POST', '/jwt', ['IndexController', 'index']);
-
-
     // *************완성된 API, 더미데이터 넣어 놓음**************
-    $r->addRoute('GET', '/room/list', ['MapController', 'roomList']);
-    $r->addRoute('GET', '/complex/list', ['MapController', 'complexList']);
-    $r->addRoute('GET', '/agency/list', ['MapController', 'agencyList']);
-    $r->addRoute('GET', '/room/detail/{roomIdx}', ['MapController', 'roomDetail']);
-    $r->addRoute('GET', '/complex/detail/{complexIdx}', ['MapController', 'complexDetail']);
-    $r->addRoute('GET', '/agency/detail/{agencyIdx}', ['MapController', 'agencyDetail']);
-    $r->addRoute('GET', '/room/complex/{complexIdx}', ['MapController', 'complexRoomList']);
-    $r->addRoute('GET', '/room/agency/{agencyIdx}', ['MapController', 'agencyRoomList']);
+    // 지도 탭 정보 관련
+    $r->addRoute('GET', '/rooms', ['MapController', 'roomList']);
+    $r->addRoute('GET', '/complexes', ['MapController', 'complexList']);
+    $r->addRoute('GET', '/agencies', ['MapController', 'agencyList']);
+    $r->addRoute('GET', '/rooms/{roomIdx}', ['MapController', 'roomDetail']);
+    $r->addRoute('GET', '/complexes/{complexIdx}', ['MapController', 'complexDetail']);
+    $r->addRoute('GET', '/agencies/{agencyIdx}', ['MapController', 'agencyDetail']);
+    $r->addRoute('GET', '/complexes/{complexIdx}/rooms', ['MapController', 'complexRoomList']);
+    $r->addRoute('GET', '/agencies/{agencyIdx}/rooms', ['MapController', 'agencyRoomList']);
     $r->addRoute('GET', '/geoFence', ['DummyController', 'geoFence']);
-    // 홈 탭 관련
-    $r->addRoute('GET', '/room/interest/{userIdx}', ['DummyController', 'homeRoomInterest']);
-    $r->addRoute('GET', '/complex/interest/{userIdx}', ['DummyController', 'homeComplexInterest']);
-    $r->addRoute('GET', '/content', ['DummyController', 'homeContent']);
-    $r->addRoute('GET', '/subscription-center', ['DummyController', 'homeSubscriptionCenter']);
-    // 홈-검색 탭 관련
-    $r->addRoute('GET', '/search/list', ['DummyController', 'searchList']);
-    $r->addRoute('GET', '/search/recently/{userIdx}', ['DummyController', 'searchRecently']);
-    $r->addRoute('DELETE', '/search/record/{userIdx}', ['DummyController', 'deleteSearchRecord']);
-    // 관심목록 탭 관련
-    $r->addRoute('GET', '/room/view/{userIdx}', ['DummyController', 'userRoomView']);
-    $r->addRoute('GET', '/complex/view/{userIdx}', ['DummyController', 'userComplexView']);
-    $r->addRoute('GET', '/room/like/{userIdx}', ['DummyController', 'userRoomLike']);
-    $r->addRoute('GET', '/complex/like/{userIdx}', ['DummyController', 'userComplexLike']);
-    $r->addRoute('GET', '/room/compare', ['DummyController', 'roomCompare']);
-    $r->addRoute('GET', '/room/question/{userIdx}', ['DummyController', 'userRoomQuestion']);
-    $r->addRoute('GET', '/agency/call/{userIdx}', ['DummyController', 'userAgencyCall']);
+    // 홈 탭 리스트 정보 관련
+    $r->addRoute('GET', '/users/{userIdx}/interest-regions', ['HomeController', 'homeRoomInterest']);
+    $r->addRoute('GET', '/users/{userIdx}/interest-complexes', ['HomeController', 'homeComplexInterest']);
+    $r->addRoute('GET', '/contents', ['HomeController', 'homeContent']);
+    $r->addRoute('GET', '/events', ['HomeController', 'homeEvent']);
+    // 검색 탭 관련
+    $r->addRoute('GET', '/searches', ['SearchController', 'searchList']);
+    $r->addRoute('GET', '/users/{userIdx}/recently-searches', ['SearchController', 'searchRecently']);
+    $r->addRoute('DELETE', '/searches/{userIdx}', ['SearchController', 'deleteSearchRecord']);
+    // 관심목록 탭 리스트 관련
+    $r->addRoute('GET', '/users/{userIdx}/looks/rooms', ['InterestController', 'userRoomView']);
+    $r->addRoute('GET', '/users/{userIdx}/looks/complexes', ['InterestController', 'userComplexView']);
+    $r->addRoute('GET', '/users/{userIdx}/likes/rooms', ['InterestController', 'userRoomLike']);
+    $r->addRoute('GET', '/comparison/rooms', ['InterestController', 'roomCompare']);
+    $r->addRoute('GET', '/users/{userIdx}/likes/complexes', ['InterestController', 'userComplexLike']);
+    $r->addRoute('GET', '/users/{userIdx}/inquiries/complexes', ['InterestController', 'userRoomInquiry']);
+    $r->addRoute('GET', '/users/{userIdx}/calls/agencies', ['InterestController', 'userAgencyCall']);
     // 유저 관련
-    $r->addRoute('GET', '/user', ['DummyController', 'userInfo']);
-    $r->addRoute('POST', '/user', ['DummyController', 'createUser']);
-    $r->addRoute('GET', '/kakao-login', ['DummyController', 'kakaoLogin']);
-    $r->addRoute('GET', '/facebook-login', ['DummyController', 'facebookLogin']);
+    $r->addRoute('GET', '/users', ['DummyController', 'userInfo']);
+    $r->addRoute('POST', '/users', ['DummyController', 'createUser']);
+    $r->addRoute('GET', '/oauth/login', ['DummyController', 'oauthLogin']);
     // 더보기 기타 관련
-    $r->addRoute('GET', '/notice', ['DummyController', 'noticeList']);
-    $r->addRoute('GET', '/side-app', ['DummyController', 'sideApp']);
+    $r->addRoute('GET', '/notices', ['DummyController', 'noticeList']);
+    $r->addRoute('GET', '/familyApps', ['DummyController', 'familyApps']);
+    //추가
+    $r->addRoute('POST', '/calls', ['EtcController', 'createCallLog']);
+    $r->addRoute('POST', '/inquiries', ['EtcController', 'createInquireLog']);
 
 
-//    $r->addRoute('GET', '/jwt', ['DummyController', 'validateJwt']);
 
-    $r->addRoute('GET', '/', ['DummyController', 'index']);
+
 
 
 

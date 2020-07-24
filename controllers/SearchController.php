@@ -58,6 +58,17 @@ try {
 
             $jwt = $_SERVER["HTTP_X_ACCESS_TOKEN"];
 
+            //존재하는 회원인지 검사
+            if (!isValidUserIdx($userIdx)) {
+                $res->isSuccess = FALSE;
+                $res->code = 200;
+                $res->message = "존재하지 않는 회원입니다";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            //jwt 토큰 검사
             if (!isValidHeader($jwt, JWT_SECRET_KEY)) {
                 $res->isSuccess = FALSE;
                 $res->code = 201;
@@ -67,9 +78,11 @@ try {
                 return;
             }
 
+            //jwt 토큰에서 userIdx확인
             $userInfo=getDataByJWToken($jwt,JWT_SECRET_KEY);
             $jwtUserIdx=$userInfo->userIdx;
 
+            //jwt 토큰의 userIdx 와 pass variable로 들어온 userIdx 일치하는지 검사
             if($jwtUserIdx!=$userIdx){
                 $res->isSuccess = FALSE;
                 $res->code = 202;
@@ -81,7 +94,7 @@ try {
 
             if(!isSearchRecently($userIdx)){
                 $res->isSuccess = False;
-                $res->code = 200;
+                $res->code = 204;
                 $res->message = "최근 검색 없음";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
@@ -123,7 +136,6 @@ try {
                 $res->code = 202;
                 $res->message = "권한이 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
-//                $errorLogs=(Object)Array();
                 addErrorLogs($errorLogs, $res, $req);
                 return;
             }

@@ -182,4 +182,21 @@ function getLogs($path)
     fclose($fp);
 }
 
+function getComplexNameFromComplexIdx($complexIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT complexName FROM Complex where complexIdx = :complexIdx;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':complexIdx',$complexIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
 

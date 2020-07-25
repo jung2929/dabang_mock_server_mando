@@ -43,9 +43,11 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/users/{userIdx}/inquiries/complexes', ['InterestController', 'userRoomInquiry']);
     $r->addRoute('GET', '/users/{userIdx}/calls/agencies', ['InterestController', 'userAgencyCall']);
     // 유저 관련
-    $r->addRoute('GET', '/users', ['DummyController', 'userInfo']);
-    $r->addRoute('POST', '/users', ['DummyController', 'createUser']);
-    $r->addRoute('GET', '/oauth/login', ['DummyController', 'oauthLogin']);
+    $r->addRoute('GET', '/users/{userIdx}', ['UserController', 'userInfo']);
+    $r->addRoute('POST', '/users/login', ['UserController', 'userBasicLogin']);
+    $r->addRoute('POST', '/users', ['UserController', 'createUser']);
+    $r->addRoute('POST', '/users/oauth/login', ['DummyController', 'oauthLogin']);
+    $r->addRoute('PATCH', '/likes', ['UserController', 'changeLikes']);
     // 더보기 기타 관련
     $r->addRoute('GET', '/notices', ['DummyController', 'noticeList']);
     $r->addRoute('GET', '/familyApps', ['DummyController', 'familyApps']);

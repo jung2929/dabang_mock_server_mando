@@ -18,6 +18,62 @@ function test()
     return $res;
 }
 
+function userInfoCreate($userEmail)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT userIdx FROM User WHERE userEmail = ?;";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userEmail]);
+    //    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0];
+}
+
+function createUser($userName, $userEmail, $userPwd, $userPhone)
+{
+    $pdo = pdoSqlConnect();
+    $query = "INSERT INTO User (userName, userEmail, userPwd, userPhone) VALUES (?, ? ,?, ?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userName, $userEmail, $userPwd, $userPhone]);
+
+    $st = null;
+    $pdo = null;
+
+}
+
+
+function userInfo($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(userName,'null') as userName,
+       COALESCE(userEmail,'null') as userEmail,
+       COALESCE(userProfileImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%ED%94%84%EB%A1%9C%ED%95%84%20%EA%B8%B0%EB%B3%B8%EC%82%AC%EC%A7%84.PNG?alt=media&token=7e94ef45-54cc-4cfa-9b2d-8c091d953914') as userProfileImg,
+       COALESCE(userPhone,'null') as userPhone
+from User
+where userIdx = :userIdx
+  and isDeleted = 'N';";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
+
 function userAgencyCall($userIdx)
 {
     $pdo = pdoSqlConnect();
@@ -2020,6 +2076,36 @@ function testPost($name)
 
 }
 
+function createRoomLikes($userIdx,$roomIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into UserHeart (userIdx,roomIdx,heart) values (:userIdx,:roomIdx,'Y');";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':roomIdx',$roomIdx,PDO::PARAM_STR);
+    $st->execute();
+
+    $st = null;
+    $pdo = null;
+}
+
+function createComplexLikes($userIdx,$complexIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "insert into UserHeart (userIdx,complexIdx,heart) values (:userIdx,:complexIdx,'Y');";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':complexIdx',$complexIdx,PDO::PARAM_STR);
+    $st->execute();
+
+    $st = null;
+    $pdo = null;
+}
+
+
+
 function createCallLog($userIdx,$roomIdx)
 {
     $pdo = pdoSqlConnect();
@@ -2117,6 +2203,57 @@ function isValidUser($userEmail){
 
     $st = $pdo->prepare($query);
     $st->execute([$userEmail]);
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isValidPhone($userPhone){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM User WHERE userPhone= :userPhone AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userPhone',$userPhone,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+
+function isRoomLike($userIdx,$roomIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserHeart WHERE userIdx=:userIdx AND roomIdx=:roomIdx AND isDeleted = 'N') AS exist";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':roomIdx',$roomIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isComplexLike($userIdx,$complexIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserHeart WHERE userIdx=:userIdx AND complexIdx=:complexIdx AND isDeleted = 'N') AS exist;;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':complexIdx',$complexIdx,PDO::PARAM_STR);
+    $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
 
@@ -2265,6 +2402,46 @@ where R.roomIdx=? and I.iconType = \"보안/안전시설\") AS exist;";
 
 }
 
+//UPDATE
+function changeRoomLikes($userIdx,$roomIdx){
+    $pdo = pdoSqlConnect();
+    $query = "update UserHeart
+set heart =
+    case
+        when heart = 'Y' then 'N'
+        when heart = 'N' then 'Y'
+        end
+where userIdx = :userIdx
+  and roomIdx = :roomIdx";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':roomIdx',$roomIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st = null;
+    $pdo = null;
+}
+
+function changeComplexLikes($userIdx,$complexIdx){
+    $pdo = pdoSqlConnect();
+    $query = "update UserHeart
+set heart =
+    case
+        when heart = 'Y' then 'N'
+        when heart = 'N' then 'Y'
+        end
+where userIdx = :userIdx
+  and complexIdx = :complexIdx";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->bindParam(':complexIdx',$complexIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st = null;
+    $pdo = null;
+}
+
+
 // CREATE
 //    function addMaintenance($message){
 //        $pdo = pdoSqlConnect();
@@ -2279,19 +2456,7 @@ where R.roomIdx=? and I.iconType = \"보안/안전시설\") AS exist;";
 //    }
 
 
-// UPDATE
-//    function updateMaintenanceStatus($message, $status, $no){
-//        $pdo = pdoSqlConnect();
-//        $query = "UPDATE MAINTENANCE
-//                        SET MESSAGE = ?,
-//                            STATUS  = ?
-//                        WHERE NO = ?";
-//
-//        $st = $pdo->prepare($query);
-//        $st->execute([$message, $status, $no]);
-//        $st = null;
-//        $pdo = null;
-//    }
+
 
 // RETURN BOOLEAN
 //    function isRedundantEmail($email){

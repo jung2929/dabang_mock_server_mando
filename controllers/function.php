@@ -199,4 +199,38 @@ function getComplexNameFromComplexIdx($complexIdx)
     return $res[0][0];
 }
 
+function getPwdFromEmail($userEmail)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT userPwd FROM User where userEmail = :userEmail;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userEmail',$userEmail,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getUserIdxFromEmail($userEmail)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT userIdx FROM User where userEmail = :userEmail;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userEmail',$userEmail,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
 

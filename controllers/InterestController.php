@@ -67,6 +67,15 @@ try {
                 return;
             }
 
+            if(!isExistUserRoomView($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 210;
+                $res->message = "최근 본 방이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
             http_response_code(200);
             $res->result = userRoomView($userIdx);
             $res->isSuccess = TRUE;
@@ -114,6 +123,15 @@ try {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "권한이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isExistUserComplexView($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "최근 본 단지가 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
                 return;
@@ -168,6 +186,15 @@ try {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "권한이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isExistUserRoomLike($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "찜 한 방이 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
                 return;
@@ -291,6 +318,16 @@ try {
             }
 
 
+            if(!isExistUserComplexLike($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "찜 한 단지가 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+
             http_response_code(200);
             $res->result = userComplexLike($userIdx);
             $res->isSuccess = TRUE;
@@ -346,6 +383,16 @@ try {
                 return;
             }
 
+            if(!isExistUserRoomInquiry($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "문의 한 방이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+
             http_response_code(200);
             $res->result = userRoomInquiry($userIdx);
             $res->isSuccess = TRUE;
@@ -395,6 +442,15 @@ try {
                 $res->isSuccess = FALSE;
                 $res->code = 202;
                 $res->message = "권한이 없습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isExistUserCall($userIdx)){
+                $res->isSuccess = FALSE;
+                $res->code = 203;
+                $res->message = "연락한 부동산이 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
                 return;

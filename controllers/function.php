@@ -233,4 +233,58 @@ function getUserIdxFromEmail($userEmail)
     return $res[0][0];
 }
 
+$homeInterestRoomDefault="{
+    \"result\": [
+        {
+            \"searchLog\": \"서울특별시 송파구 잠실동\",
+            \"roomNum\": \"2개의 방\",
+            \"dongImg\": \"https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/region%2F%EC%A7%80%EC%97%AD1.PNG?alt=media&token=7b6042e5-70c9-47e0-b773-410123114ee5\",
+            \"roomType\": \"원룸,투ㆍ쓰리룸,오피스텔\"
+        },
+        {
+            \"searchLog\": \"서울특별시 강남구 삼성동\",
+            \"roomNum\": \"1개의 방\",
+            \"dongImg\": \"https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/region%2F%EC%A7%80%EC%97%AD4.PNG?alt=media&token=a70413c4-c85e-4254-983f-db54dec20739\",
+            \"roomType\": \"원룸,투ㆍ쓰리룸,오피스텔\"
+        }
+    ],
+    \"isSuccess\": true,
+    \"code\": 100,
+    \"message\": \"관심지역 모든 방 리스트\"
+}";
+
+$homeInterestComplexDefault="{
+    \"result\": [
+        {
+            \"complexIdx\": \"5\",
+            \"complexName\": \"하이데어\",
+            \"complexImg\": \"https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/complex%2Fmain%2Fc2.PNG?alt=media&token=da998b88-84c5-4586-9271-a270c67bdec2\",
+            \"roomNum\": \"0개의 방\",
+            \"kindOfBuilding\": \"오피스텔\",
+            \"householdNum\": \"175세대\",
+            \"completionDate\": \"2015.01\"
+        },
+        {
+            \"complexIdx\": \"1\",
+            \"complexName\": \"파로스타워\",
+            \"complexImg\": \"https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/complex%2F1%2FcomplexImg%2Fc1-2.PNG?alt=media&token=2583154a-27b1-4b61-85ab-6948e731a17d\",
+            \"roomNum\": \"2개의 방\",
+            \"kindOfBuilding\": \"오피스텔\",
+            \"householdNum\": \"16세대\",
+            \"completionDate\": \"2020.06\"
+        },
+        {
+            \"complexIdx\": \"2\",
+            \"complexName\": \"위너스\",
+            \"complexImg\": \"https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/complex%2Fmain%2Fc2.PNG?alt=media&token=da998b88-84c5-4586-9271-a270c67bdec2\",
+            \"roomNum\": \"2개의 방\",
+            \"kindOfBuilding\": \"오피스텔\",
+            \"householdNum\": \"175세대\",
+            \"completionDate\": \"1991.01\"
+        }
+    ],
+    \"isSuccess\": true,
+    \"code\": 100,
+    \"message\": \"관심지역 모든 단지 리스트\"
+}";
 

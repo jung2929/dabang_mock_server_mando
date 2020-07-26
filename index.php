@@ -46,7 +46,7 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/users/{userIdx}', ['UserController', 'userInfo']);
     $r->addRoute('POST', '/users/login', ['UserController', 'userBasicLogin']);
     $r->addRoute('POST', '/users', ['UserController', 'createUser']);
-    $r->addRoute('POST', '/users/oauth/login', ['DummyController', 'oauthLogin']);
+    $r->addRoute('POST', '/users/oauth/login', ['UserController', 'oauthLogin']);
     $r->addRoute('PATCH', '/likes', ['UserController', 'changeLikes']);
     // 더보기 기타 관련
     $r->addRoute('GET', '/notices', ['DummyController', 'noticeList']);

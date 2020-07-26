@@ -319,7 +319,8 @@ try {
 
             $userEmail=$req->userEmail;
             $userPwd=$req->userPwd;
-            
+
+
             //이메일 입력했는지 여부
             if(!isset($userEmail)) {
                 $res->isSuccess = FALSE;
@@ -374,6 +375,81 @@ try {
             $res->message = "정상적으로 로그인 되었습니다.";
             echo json_encode($res);
             break;
+
+
+
+        case "oauthLogin":
+
+
+            $userName=$req->userName;
+            $userEmail=$req->userEmail;
+            $oauthType=$req->oauthType;
+
+
+            if(!isset($userEmail)) {
+                $res->isSuccess = FALSE;
+                $res->code = 210;
+                $res->message = "이메일을 입력해 주십시오";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isset($userName)) {
+                $res->isSuccess = FALSE;
+                $res->code = 211;
+                $res->message = "이름을 입력해 주십시오";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isset($oauthType)) {
+                $res->isSuccess = FALSE;
+                $res->code = 212;
+                $res->message = "sns 종류를 입력해 주십시오";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+
+            //가입된 email이 있으면 jwt 토큰 발급, 없으면 회원가입.
+            if(isValidUser($userEmail)){
+
+                //이메일로 userIdx알아내기
+                $userIdx=getUserIdxFromEmail($userEmail);
+
+                //jwt토큰 만들기
+                $jwt = getJWToken($userIdx, $userEmail, JWT_SECRET_KEY);
+
+                http_response_code(200);
+                $res->result->userIdx=$userIdx;
+                $res->result->jwt=$jwt;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "정상적으로 로그인 되었습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            } else {
+                //회원가입 시키기
+                createSnsUser($userName, $userEmail,$oauthType);
+                //이메일로 userIdx알아내기
+                $userIdx=getUserIdxFromEmail($userEmail);
+                //jwt토큰 만들기
+                $jwt = getJWToken($userIdx, $userEmail, JWT_SECRET_KEY);
+
+                $res->result->userIdx=$userIdx;
+                $res->result->jwt=$jwt;
+                $res->isSuccess = TRUE;
+                $res->code = 101;
+                $res->message = "회원가입 후 로그인 되었습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                return;
+            }
+
+            break;
+
 
 
         case "testPost":

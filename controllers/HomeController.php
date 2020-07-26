@@ -67,6 +67,11 @@ try {
                 return;
             }
 
+            if(!isExistUserRegionView($userIdx)){
+                echo $homeInterestRoomDefault;
+                return;
+            }
+
             http_response_code(200);
             $res->result = homeRoomInterest($userIdx);
             $res->isSuccess = TRUE;
@@ -105,6 +110,11 @@ try {
                 $res->message = "권한이 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isExistUserComplexView($userIdx)){
+                echo $homeInterestComplexDefault;
                 return;
             }
 

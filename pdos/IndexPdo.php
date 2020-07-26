@@ -48,6 +48,19 @@ function createUser($userName, $userEmail, $userPwd, $userPhone)
 
 }
 
+function createSnsUser($userName, $userEmail, $oauthType)
+{
+    $pdo = pdoSqlConnect();
+    $query = "INSERT INTO User (userName, userEmail, snsType) VALUES (?, ? ,?);";
+
+    $st = $pdo->prepare($query);
+    $st->execute([$userName, $userEmail, $oauthType]);
+
+    $st = null;
+    $pdo = null;
+
+}
+
 
 function userInfo($userIdx)
 {
@@ -674,6 +687,7 @@ function searchList($keyWord)
        COALESCE(C.tag,'null') as tag,
        case when regionName like '%동' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%A7%80%EC%97%AD%EB%AA%85%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=9cd01fe3-122b-4faa-86b5-0af71919afd4'
        when regionName like '%역' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%97%AD%20%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=6ea88cf0-e8f7-45cd-9459-1819aaf0b73a'
+       when regionName like '%교' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EB%8C%80%ED%95%99%EA%B5%90%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=d19e2c9c-c68e-4098-adbc-f1499727122a'
        else 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%95%84%ED%8C%8C%ED%8A%B8%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=b67cb97f-0174-4828-b538-8c1954fb732b'
        end as icon
 from(
@@ -681,10 +695,12 @@ from(
 union
 (select dongAddress as regionName, null as address, null as tag from Region where isDeleted='N')
 union
+(select universityName as regionName, null as address, null as tag from University where isDeleted='N')
+union
 (select stationName as regionName, null as address, stationLine as tag from Station where isDeleted='N')) as C
 where C.regionName like concat('%',:keyWord,'%')
 order by icon desc
-limit 20";
+limit 30";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':keyWord',$keyWord,PDO::PARAM_STR);
@@ -799,7 +815,7 @@ limit 5";
 function homeRoomInterest($userIdx)
 {
     $pdo = pdoSqlConnect();
-    $query = "select substring_index(U.searchLog,' ',-1) as searchLog,
+    $query = "select U.searchLog as searchLog,
        COALESCE(concat(RN.roomNum,'개의 방'),'0개의 방') as roomNum,
        COALESCE(R.dongImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as dongImg,
        replace(replace(U.roomType,'투쓰리룸','투ㆍ쓰리룸'),'|',',') as roomType
@@ -872,6 +888,7 @@ function roomDetail($roomIdx,$userIdx)
        COALESCE(R.roomAddress,'null') as roomAddress,
        COALESCE(R.score, \"null\") as score,
        COALESCE(R.scoreComment, \"null\") as scoreComment,
+       COALESCE(R.scoreImg, \"null\") as scoreImg,
        COALESCE(R.description, \"null\") as description,
        COALESCE(A.agencyIdx, \"null\") as agencyIdx,
        COALESCE(A.agencyBossPhone, \"null\") as agencyBossPhone,
@@ -1319,10 +1336,10 @@ function rangeComplexNum($roomType,$latitude,$longitude,$scale)
 where
 kindOfBuilding regexp :roomType
 and isDeleted = 'N'
-and latitude >= (:latitude-(:scale/100))
-and latitude <= (:latitude+(:scale/100))
-and longitude >= (:longitude-(:scale/100))
-and longitude <= (:longitude+(:scale/100))";
+and latitude >= (:latitude-(:scale/1000))
+and latitude <= (:latitude+(:scale/1000))
+and longitude >= (:longitude-(:scale/1000))
+and longitude <= (:longitude+(:scale/1000))";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
@@ -1344,10 +1361,10 @@ function rangeAgencyNum($latitude,$longitude,$scale)
     $pdo = pdoSqlConnect();
     $query = "select count(*) from Agency
 where
-latitude >= (:latitude-(:scale/100))
-and latitude <= (:latitude+(:scale/100))
-and longitude >= (:longitude-(:scale/100))
-and longitude <= (:longitude+(:scale/100))
+latitude >= (:latitude-(:scale/1000))
+and latitude <= (:latitude+(:scale/1000))
+and longitude >= (:longitude-(:scale/1000))
+and longitude <= (:longitude+(:scale/1000))
 ";
 
     $st = $pdo->prepare($query);
@@ -1381,10 +1398,10 @@ on ARN.agencyIdx = A.agencyIdx
 where kindOfRoom regexp :roomType and left(maintenanceCost, 1) >= :maintenanceCostMin and left(maintenanceCost, 1) <= :maintenanceCostMax
 and left(exclusiveArea, char_length(exclusiveArea)-1) >= :exclusiveAreaMin and left(exclusiveArea, char_length(exclusiveArea)-1) <= :exclusiveAreaMax
 and R.isDeleted = 'N'
-and R.latitude >= (:latitude-(:scale/100))
-and R.latitude <= (:latitude+(:scale/100))
-and R.longitude >= (:longitude-(:scale/100))
-and R.longitude <= (:longitude+(:scale/100))";
+and R.latitude >= (:latitude-(:scale/1000))
+and R.latitude <= (:latitude+(:scale/1000))
+and R.longitude >= (:longitude-(:scale/1000))
+and R.longitude <= (:longitude+(:scale/1000))";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
@@ -1545,10 +1562,10 @@ from Agency as A
                     where agencyMemberPosition = \"대표공인중개사\") as AM
                    on AM.agencyIdx = A.agencyIdx
 where A.isDeleted ='N'
-and A.latitude >= (:latitude-(:scale/100))
-and A.latitude <= (:latitude+(:scale/100))
-and A.longitude >= (:longitude-(:scale/100))
-and A.longitude <= (:longitude+(:scale/100))";
+and A.latitude >= (:latitude-(:scale/1000))
+and A.latitude <= (:latitude+(:scale/1000))
+and A.longitude >= (:longitude-(:scale/1000))
+and A.longitude <= (:longitude+(:scale/1000))";
 
     $st = $pdo->prepare($query1);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
@@ -1641,10 +1658,10 @@ from Complex as C
                    on RN.complexIdx = C.complexIdx
 where C.isDeleted = \"N\"
 and C.kindOfBuilding regexp :roomType
-and C.latitude >= (:latitude-(:scale/100))
-and C.latitude <= (:latitude+(:scale/100))
-and C.longitude >= (:longitude-(:scale/100))
-and C.longitude <= (:longitude+(:scale/100))";
+and C.latitude >= (:latitude-(:scale/1000))
+and C.latitude <= (:latitude+(:scale/1000))
+and C.longitude >= (:longitude-(:scale/1000))
+and C.longitude <= (:longitude+(:scale/1000))";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
@@ -1989,10 +2006,10 @@ on UH.roomIdx = R.roomIdx
 where kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
 and left(exclusiveArea, char_length(exclusiveArea)-1) >= :exclusiveAreaMin and left(exclusiveArea, char_length(exclusiveArea)-1) <= :exclusiveAreaMax
 and R.isDeleted = 'N'
-and R.latitude >= (:latitude-(:scale/100))
-and R.latitude <= (:latitude+(:scale/100))
-and R.longitude >= (:longitude-(:scale/100))
-and R.longitude <= (:longitude+(:scale/100))
+and R.latitude >= (:latitude-(:scale/1000))
+and R.latitude <= (:latitude+(:scale/1000))
+and R.longitude >= (:longitude-(:scale/1000))
+and R.longitude <= (:longitude+(:scale/1000))
 order by R.plus desc";
 
     $st = $pdo->prepare($query1);
@@ -2227,6 +2244,120 @@ function isValidPhone($userPhone){
     return intval($res[0]["exist"]);
 
 }
+
+function isExistUserRoomView($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserRoomLog WHERE userIdx=:userIdx AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+
+function isExistUserRegionView($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserSearchLog WHERE userIdx=:userIdx AND isDeleted = 'N' AND searchLog like '%동') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUserComplexView($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserComplexLog WHERE userIdx=:userIdx AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUserRoomLike($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserHeart WHERE userIdx=:userIdx AND isDeleted = 'N' And heart='Y' And roomIdx is not null) AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUserComplexLike($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserHeart WHERE userIdx=:userIdx AND isDeleted = 'N' And heart='Y' And complexIdx is not null) AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUserRoomInquiry($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserInquiryLog WHERE userIdx=:userIdx AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUserCall($userIdx){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM UserCallLog WHERE userIdx=:userIdx AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
 
 
 function isRoomLike($userIdx,$roomIdx){

@@ -233,6 +233,77 @@ function getUserIdxFromEmail($userEmail)
     return $res[0][0];
 }
 
+
+function getRegionLatitudeFromAddress($address)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT latitude FROM Region where dongAddress = :address;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':address',$address,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getRegionLongitudeFromAddress($address)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT longitude FROM Region where dongAddress = :address;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':address',$address,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getStationLatitudeFromStationName($station)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT latitude FROM Station where stationName = :stationName;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':stationName',$station,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getStationLongitudeFromStationName($station)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT longitude FROM Station where stationName = :stationName;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':stationName',$station,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+
 $homeInterestRoomDefault="{
     \"result\": [
         {

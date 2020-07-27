@@ -16,6 +16,10 @@ $patternLongitude = "/\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/";
 $patternScale = "/^([1-9][0-9]*)$/";
 //동 검사
 $patternAddress = "/동$|면$|읍$/";
+//모든지역 검사
+$patternRegion = "/동$|면$|읍$|역$/";
+//역 검사
+$patternStation = "/역$/";
 //최소최대 관리비 검사
 $patternMaintenanceCost = "/^(0|[1-9][0-9]*)$/";
 //전용면적 검사
@@ -56,7 +60,7 @@ try {
             $exclusiveAreaMin=$_GET['exclusiveAreaMin'];
             $exclusiveAreaMax=$_GET['exclusiveAreaMax'];
 
-            //지역 쿼리스트링
+            //주소,역 쿼리스트링
             $address=$_GET['address'];
 
             //범위 쿼리스트링
@@ -75,8 +79,26 @@ try {
                 http_response_code(200);
                 $res->isSuccess = TRUE;
                 $res->code = 210;
-                $res->message = "필수 쿼리스트링이 누락 되었습니다.";
+                $res->message = "조건을 입력해 주십시오.";
                 echo json_encode($res);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isset($latitude) and !isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($latitude) and isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
                 return;
             }
@@ -91,104 +113,105 @@ try {
             }
 
 
-            if(isset($latitude)){
-                if (!preg_match($patternLatitude, $latitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 212;
-                    $res->message = "위도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }}
-
-
-            if(isset($longitude)){
-                if (!preg_match($patternLongitude, $longitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 213;
-                    $res->message = "경도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($latitude) and !preg_match($patternLatitude, $latitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 212;
+                $res->message = "위도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
 
-            if(isset($maintenanceCostMin)){
-                if (!preg_match($patternMaintenanceCost, $maintenanceCostMin)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 214;
-                    $res->message = "관리비 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
-            }
-
-            if(isset($maintenanceCostMax)){
-                if (!preg_match($patternMaintenanceCost, $maintenanceCostMax)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 214;
-                    $res->message = "관리비 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($longitude) and !preg_match($patternLongitude, $longitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 213;
+                $res->message = "경도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
 
-            if(isset($exclusiveAreaMin)){
-                if (!preg_match($patternArea, $exclusiveAreaMin)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 215;
-                    $res->message = "면적 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($maintenanceCostMin) and !preg_match($patternMaintenanceCost, $maintenanceCostMin)) {
+                $res->isSuccess = FALSE;
+                $res->code = 214;
+                $res->message = "관리비 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
-            if(isset($exclusiveAreaMax)){
-                if (!preg_match($patternArea, $exclusiveAreaMax)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 215;
-                    $res->message = "면적 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($maintenanceCostMax) and !preg_match($patternMaintenanceCost, $maintenanceCostMax)) {
+                $res->isSuccess = FALSE;
+                $res->code = 214;
+                $res->message = "관리비 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
-            if(isset($scale)){
-                if (!preg_match($patternScale, $scale)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 216;
-                    $res->message = "scale 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+
+            if(isset($exclusiveAreaMin) and !preg_match($patternArea, $exclusiveAreaMin)) {
+                $res->isSuccess = FALSE;
+                $res->code = 215;
+                $res->message = "면적 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
-            if(isset($address)){
-                if (!preg_match($patternAddress, $address)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 217;
-                    $res->message = "지역 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($exclusiveAreaMax) and !preg_match($patternArea, $exclusiveAreaMax)) {
+                $res->isSuccess = FALSE;
+                $res->code = 215;
+                $res->message = "면적 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
+
+            if(isset($scale) and !preg_match($patternScale, $scale)) {
+                $res->isSuccess = FALSE;
+                $res->code = 216;
+                $res->message = "scale 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($address) and !preg_match($patternRegion, $address)) {
+                $res->isSuccess = FALSE;
+                $res->code = 217;
+                $res->message = "지역 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 218;
+                $res->message = "존재하지 않는 지역 입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+
 
             //검색을 위해 투쓰리룸으로 들어온 파라미터를 투룸과 쓰리룸으로 분리
             $roomType=str_replace('투쓰리룸','투룸|쓰리룸',$roomType);
 
             //xx동으로 분류
-            if($address){
+            if($address and preg_match($patternAddress, $address)){
                 $result=[];
 
+                $mapLatitude=getRegionLatitudeFromAddress($address);
+                $mapLongitude=getRegionLongitudeFromAddress($address);
+
                 $result['roomNum'] = addressRoomNum($address,$roomType);
+                $result['mapLatitude'] = $mapLatitude;
+                $result['mapLongitude'] = $mapLongitude;
                 //범위에 포함된 방이 없을 경우
                 if($result['roomNum']==0){
                     $result['roomList'] = "null";
@@ -214,6 +237,8 @@ try {
                 //범위내 포함된 방의 수
                 $result=[];
                 $result['roomNum'] = rangeRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale);
+                $result['mapLatitude'] = $latitude;
+                $result['mapLongitude'] = $longitude;
 
                 //범위에 포함된 방이 없을 경우
                 if(rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale,$userIdx)){
@@ -221,6 +246,35 @@ try {
                 } else {
                     $result['roomList'] = "null";
                 }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($address and preg_match($patternStation, $address)){
+                //범위내 포함된 방의 수
+
+                $mapLatitude=getStationLatitudeFromStationName($address);
+                $mapLongitude=getStationLongitudeFromStationName($address);
+
+                $result=[];
+                $result['roomNum'] = stationRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address);
+                $result['mapLatitude'] = $mapLatitude;
+                $result['mapLongitude'] = $mapLongitude;
+
+                //범위에 포함된 방이 없을 경우
+                if(stationRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx)){
+                    $result['roomList'] = stationRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx);
+                } else {
+                    $result['roomList'] = "null";
+                }
+
+                insertUserSearchLog($jwtUserIdx,$roomType,$address);
 
                 http_response_code(200);
                 $res->result = $result;
@@ -247,7 +301,7 @@ try {
             //필수 쿼리스트링 받기
             $roomType=$_GET['roomType'];
 
-            //지역 쿼리스트링
+            //주소,역 쿼리스트링
             $address=$_GET['address'];
 
             //범위 쿼리스트링
@@ -261,8 +315,26 @@ try {
                 http_response_code(200);
                 $res->isSuccess = TRUE;
                 $res->code = 210;
-                $res->message = "필수 쿼리스트링이 누락 되었습니다.";
+                $res->message = "조건을 입력해 주십시오.";
                 echo json_encode($res);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(!isset($latitude) and !isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($latitude) and isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
                 return;
             }
@@ -279,58 +351,61 @@ try {
             }
 
 
-            if(isset($latitude)){
-                if (!preg_match($patternLatitude, $latitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 212;
-                    $res->message = "위도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }}
-
-
-
-            if(isset($longitude)){
-                if (!preg_match($patternLongitude, $longitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 213;
-                    $res->message = "경도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($latitude) and !preg_match($patternLatitude, $latitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 212;
+                $res->message = "위도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
 
 
-            if(isset($exclusiveAreaMax)){
-                if (!preg_match($patternScale, $scale)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 216;
-                    $res->message = "scale 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($longitude) and !preg_match($patternLongitude, $longitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 213;
+                $res->message = "경도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
 
-            if(isset($address)){
-                if (!preg_match($patternAddress, $address)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 217;
-                    $res->message = "지역 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+
+            if(isset($exclusiveAreaMax) and !preg_match($patternScale, $scale)) {
+                $res->isSuccess = FALSE;
+                $res->code = 216;
+                $res->message = "scale 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
+
+
+            if(isset($address) and !preg_match($patternRegion, $address)) {
+                $res->isSuccess = FALSE;
+                $res->code = 217;
+                $res->message = "지역 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 218;
+                $res->message = "존재하지 않는 지역 입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
 
             $roomType=str_replace('투쓰리룸','투룸|쓰리룸',$roomType);
 
             //xx동으로 분류
-            if($address){
+            if($address and preg_match($patternAddress, $address)){
                 $result=[];
                 $result['complexNum'] = addressComplexNum($address);
 
@@ -354,11 +429,11 @@ try {
             if($latitude and $longitude and $scale){
                 //범위내 포함된 방의 수
                 $result=[];
-                $result['complexNum'] = rangeComplexNum($roomType,$latitude,$longitude,$scale,$userIdx);
+                $result['complexNum'] = rangeComplexNum($roomType,$latitude,$longitude,$scale);
 
                 //범위에 포함된 방이 없을 경우
                 if(rangeComplexList($roomType,$latitude,$longitude,$scale,$userIdx)){
-                    $result['complexList'] = rangeComplexList($roomType,$latitude,$longitude,$scale,$userIdx);
+                    $result['complexList'] = rangeComplexList($roomType,$latitude,$longitude,$scale);
                 } else {
                     $result['complexList'] = "null";
                 }
@@ -372,6 +447,29 @@ try {
                 break;
             }
 
+            if($address and preg_match($patternStation, $address)){
+                //범위내 포함된 방의 수
+
+                $result=[];
+                $result['complexNum'] = stationComplexNum($roomType,$address);
+
+                //범위에 포함된 방이 없을 경우
+                if(stationComplexList($roomType,$address)){
+                    $result['complexList'] = stationComplexList($roomType,$address);
+                } else {
+                    $result['complexList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "단지 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+
             break;
 
         /*
@@ -383,7 +481,7 @@ try {
 
         case "agencyList":
 
-            //지역 쿼리스트링
+            //주소, 역 쿼리스트링
             $address=$_GET['address'];
 
             //범위 쿼리스트링
@@ -392,52 +490,72 @@ try {
             $scale=$_GET['scale'];
 
 
-
-            if(isset($latitude)){
-                if (!preg_match($patternLatitude, $latitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 212;
-                    $res->message = "위도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }}
-
-            if(isset($longitude)){
-                if (!preg_match($patternLongitude, $longitude)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 213;
-                    $res->message = "경도 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(!isset($latitude) and !isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
-            if(isset($scale)){
-                if (!preg_match($patternScale, $scale)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 216;
-                    $res->message = "scale 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($latitude) and isset($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 219;
+                $res->message = "좌표 or address를 입력해 주십시오.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
-            if(isset($address)){
-                if (!preg_match($patternAddress, $address)) {
-                    $res->isSuccess = FALSE;
-                    $res->code = 217;
-                    $res->message = "지역 양식이 틀렸습니다.";
-                    echo json_encode($res, JSON_NUMERIC_CHECK);
-                    addErrorLogs($errorLogs, $res, $req);
-                    return;
-                }
+            if(isset($latitude) and !preg_match($patternLatitude, $latitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 212;
+                $res->message = "위도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
+
+            if(isset($longitude) and !preg_match($patternLongitude, $longitude)) {
+                $res->isSuccess = FALSE;
+                $res->code = 213;
+                $res->message = "경도 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($scale) and !preg_match($patternScale, $scale)) {
+                $res->isSuccess = FALSE;
+                $res->code = 216;
+                $res->message = "scale 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($address) and !preg_match($patternRegion, $address)) {
+                $res->isSuccess = FALSE;
+                $res->code = 217;
+                $res->message = "지역 양식이 틀렸습니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+                $res->isSuccess = FALSE;
+                $res->code = 218;
+                $res->message = "존재하지 않는 지역 입니다.";
+                echo json_encode($res, JSON_NUMERIC_CHECK);
+                addErrorLogs($errorLogs, $res, $req);
+                return;
+            }
+
 
             //xx동으로 분류
-            if($address){
+            if($address and preg_match($patternAddress, $address)){
                 $result=[];
                 $result['agencyNum'] = addressAgencyNum($address);
 
@@ -466,6 +584,28 @@ try {
                 //범위에 포함된 방이 없을 경우
                 if(rangeAgencyList($latitude,$longitude,$scale)){
                     $result['agencyList'] = rangeAgencyList($latitude,$longitude,$scale);
+                } else {
+                    $result['agencyList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "중개사 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+
+            //xx역으로 분류
+            if($address and preg_match($patternStation, $address)){
+                $result=[];
+                $result['agencyNum'] = stationAgencyNum($address);
+
+                //범위에 포함된 방이 없을 경우
+                if(stationAgencyList($address)){
+                    $result['agencyList'] = stationAgencyList($address);
                 } else {
                     $result['agencyList'] = "null";
                 }

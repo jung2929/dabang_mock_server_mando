@@ -358,4 +358,66 @@ $homeInterestComplexDefault="{
     \"code\": 100,
     \"message\": \"관심지역 모든 단지 리스트\"
 }";
+function getHospital($latitude,$longitude)
+{
+    $url ="http://apis.data.go.kr/B552657/HsptlAsembySearchService/getHsptlMdcncLcinfoInqire?WGS84_LON=$longitude&WGS84_LAT=$latitude&pageNo=1&numOfRows=1&ServiceKey=84FQuuCUDfMgaTG0o0l6pgq%2BzKhYMcMnID33w1LkgOpXXPXW%2B9qG7Mddz%2BUo6nLs%2F0SFwuCDr2YU%2BK77VQWCIQ%3D%3D";
 
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);    //요청 결과를 문자열로 반환
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);      //connection timeout 10초
+
+    $response = curl_exec($ch);
+
+    curl_close($ch);
+
+    $object = simplexml_load_string($response);
+
+    $dutyName=$object->body->items->item->dutyName;
+    $distance=$object->body->items->item->distance;
+    $dutyName = (array) $dutyName;
+    $distance = (array) $distance;
+
+    $res->amenityName=$dutyName[0];
+    $res->distance=$distance[0];
+    $res->amenityType='병원';
+
+    return $res;
+
+}
+
+
+function getUniversityLatitudeFromUniversityName($university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT latitude FROM University where universityName = :universityName;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getUniversityLongitudeFromUniversityName($university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "SELECT longitude FROM University where universityName = :universityName;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}

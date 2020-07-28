@@ -17,9 +17,11 @@ $patternScale = "/^([1-9][0-9]*)$/";
 //동 검사
 $patternAddress = "/동$|면$|읍$/";
 //모든지역 검사
-$patternRegion = "/동$|면$|읍$|역$/";
+$patternRegion = "/동$|면$|읍$|역$|교$/";
 //역 검사
 $patternStation = "/역$/";
+//대학 검사
+$patternUniversity = "/교$/";
 //최소최대 관리비 검사
 $patternMaintenanceCost = "/^(0|[1-9][0-9]*)$/";
 //전용면적 검사
@@ -188,7 +190,8 @@ try {
                 return;
             }
 
-            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address) and !isExistUniversity($address)){
                 $res->isSuccess = FALSE;
                 $res->code = 218;
                 $res->message = "존재하지 않는 지역 입니다.";
@@ -273,7 +276,40 @@ try {
                 } else {
                     $result['roomList'] = "null";
                 }
+                //UserSearchLog 기록을 위해 다시 원상태로 복구
+                $roomType=str_replace('투룸|쓰리룸','투쓰리룸',$roomType);
+                //검색내용을 UserSearchLog 테이블에 기록
+                insertUserSearchLog($jwtUserIdx,$roomType,$address);
 
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($address and preg_match($patternUniversity, $address)){
+                //범위내 포함된 방의 수
+
+                $mapLatitude=getUniversityLatitudeFromUniversityName($address);
+                $mapLongitude=getUniversityLongitudeFromUniversityName($address);
+
+                $result=[];
+                $result['roomNum'] = UniversityRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address);
+                $result['mapLatitude'] = $mapLatitude;
+                $result['mapLongitude'] = $mapLongitude;
+
+                //범위에 포함된 방이 없을 경우
+                if(UniversityRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx)){
+                    $result['roomList'] = UniversityRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx);
+                } else {
+                    $result['roomList'] = "null";
+                }
+                //UserSearchLog 기록을 위해 다시 원상태로 복구
+                $roomType=str_replace('투룸|쓰리룸','투쓰리룸',$roomType);
+                //검색내용을 UserSearchLog 테이블에 기록
                 insertUserSearchLog($jwtUserIdx,$roomType,$address);
 
                 http_response_code(200);
@@ -392,7 +428,7 @@ try {
                 return;
             }
 
-            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address) and !isExistUniversity($address)){
                 $res->isSuccess = FALSE;
                 $res->code = 218;
                 $res->message = "존재하지 않는 지역 입니다.";
@@ -469,6 +505,27 @@ try {
                 break;
             }
 
+            if($address and preg_match($patternUniversity, $address)){
+                //범위내 포함된 방의 수
+
+                $result=[];
+                $result['complexNum'] = universityComplexNum($roomType,$address);
+
+                //범위에 포함된 방이 없을 경우
+                if(universityComplexList($roomType,$address)){
+                    $result['complexList'] = universityComplexList($roomType,$address);
+                } else {
+                    $result['complexList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "방 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
 
             break;
 
@@ -544,7 +601,7 @@ try {
                 return;
             }
 
-            if(isset($address) and !isExistAddress($address) and !isExistStation($address)){
+            if(isset($address) and !isExistAddress($address) and !isExistStation($address) and !isExistUniversity($address)){
                 $res->isSuccess = FALSE;
                 $res->code = 218;
                 $res->message = "존재하지 않는 지역 입니다.";
@@ -606,6 +663,26 @@ try {
                 //범위에 포함된 방이 없을 경우
                 if(stationAgencyList($address)){
                     $result['agencyList'] = stationAgencyList($address);
+                } else {
+                    $result['agencyList'] = "null";
+                }
+
+                http_response_code(200);
+                $res->result = $result;
+                $res->isSuccess = TRUE;
+                $res->code = 100;
+                $res->message = "중개사 리스트 출력";
+                echo json_encode($res);
+                break;
+            }
+
+            if($address and preg_match($patternUniversity, $address)){
+                $result=[];
+                $result['agencyNum'] = universityAgencyNum($address);
+
+                //범위에 포함된 방이 없을 경우
+                if(universityAgencyList($address)){
+                    $result['agencyList'] = universityAgencyList($address);
                 } else {
                     $result['agencyList'] = "null";
                 }

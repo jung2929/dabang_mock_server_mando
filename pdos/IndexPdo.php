@@ -93,7 +93,7 @@ function userAgencyCall($userIdx)
     $query = "select URL.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -185,7 +185,7 @@ function userRoomInquiry($userIdx)
     $query = "select URL.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -317,7 +317,7 @@ function roomCompare($roomIdx1,$roomIdx2,$roomIdx3)
        COALESCE(RI.roomImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as roomImg,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
        COALESCE(concat(R.contractArea,\"㎡\"), 'null') as contractArea,
        COALESCE(R.thisFloor,'null') as thisFloor,
@@ -394,7 +394,7 @@ function userRoomLike($userIdx)
     $query = "select URL.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -546,7 +546,7 @@ function userRoomView($userIdx)
 select URL.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -815,9 +815,9 @@ limit 5";
 function homeRoomInterest($userIdx)
 {
     $pdo = pdoSqlConnect();
-    $query = "select U.searchLog as searchLog,
+    $query = "select U.searchLog as regionName,
        COALESCE(concat(RN.roomNum,'개의 방'),'0개의 방') as roomNum,
-       COALESCE(R.regionImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as dongImg,
+       COALESCE(R.regionImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as regionImg,
        replace(replace(U.roomType,'투쓰리룸','투ㆍ쓰리룸'),'|',',') as roomType
 from (select U.searchLog, U.createdAt, R.roomType from
      (select searchLog, Max(createdAt) as createdAt
@@ -828,7 +828,9 @@ left join UserSearchLog as R
 on R.searchLog = U.searchLog and R.createdAt = U.createdAt) as U
          left join (select dongAddress as region, dongImg as regionImg from Region
 union
-select stationName as region, stationImg as regionImg from Station) as R
+select stationName as region, stationImg as regionImg from Station
+union
+select universityName as region, universityImg as regionImg from University) as R
                    on R.region = U.searchLog
          left join (select roomAddress as region,
                            count(roomAddress) as roomNum
@@ -841,9 +843,17 @@ where (select Round(6371 * acos(cos(radians((S.latitude))) *
                 (S.longitude))) +
                         sin(radians((S.latitude))) *
                         sin(radians(R.latitude))), 0)) <=1
-group by S.stationName) as RN
+group by S.stationName
+union
+select S.universityName as region ,count(S.universityName) as roomNum from University as S, Room as R
+where (select Round(6371 * acos(cos(radians((S.latitude))) *
+                        cos(radians(R.latitude)) * cos(radians(R.longitude) - radians(
+                (S.longitude))) +
+                        sin(radians((S.latitude))) *
+                        sin(radians(R.latitude))), 0)) <=1
+group by S.universityName) as RN
                    on R.region = RN.region
-where U.searchLog Like '%동' or U.searchLog Like '%면' or  U.searchLog Like '%읍' or  U.searchLog Like '%역'
+where U.searchLog Like '%동' or U.searchLog Like '%면' or  U.searchLog Like '%읍' or  U.searchLog Like '%역' or U.searchLog Like '%교'
 order by U.createdAt desc
 limit 5
 ";
@@ -1395,6 +1405,34 @@ where
 }
 
 
+function universityComplexNum($roomType,$university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Complex as C
+where
+      kindOfBuilding regexp :roomType
+  and C.isDeleted = 'N'
+  and
+(select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(C.latitude)) * cos(radians(C.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(C.latitude))), 0)) <=1";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
 function rangeAgencyNum($latitude,$longitude,$scale)
 {
     $pdo = pdoSqlConnect();
@@ -1436,6 +1474,31 @@ where A.isDeleted=\"N\" and
 
     $st = $pdo->prepare($query);
     $st->bindParam(':stationName',$station,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function universityAgencyNum($university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Agency as A
+where A.isDeleted=\"N\"
+and (select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(A.latitude)) * cos(radians(A.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(A.latitude))), 0)) <=1
+";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
     $res = $st->fetchAll();
@@ -1513,6 +1576,41 @@ where
     $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
     $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
     $st->bindParam(':stationName',$station,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function universityRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*) from Room as R
+where
+      kindOfRoom regexp :roomType
+  and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1), '만', 1) >= :maintenanceCostMin
+  and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1), '만', 1) <= :maintenanceCostMax
+  and left(exclusiveArea, char_length(exclusiveArea) - 1) >= :exclusiveAreaMin
+  and left(exclusiveArea, char_length(exclusiveArea) - 1) <= :exclusiveAreaMax
+  and R.isDeleted = 'N'
+  and
+(select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(R.latitude)) * cos(radians(R.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(R.latitude))), 0)) <=1";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
     $res = $st->fetchAll();
@@ -1604,7 +1702,7 @@ where A.agencyAddress like concat('%',:address,'%') and A.isDeleted='N'";
         $pdo2 = pdoSqlConnect();
         $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease, \"null\") as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
@@ -1683,7 +1781,7 @@ and A.longitude <= (:longitude+(:scale/1000))";
         $pdo2 = pdoSqlConnect();
         $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease, \"null\") as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
@@ -1761,7 +1859,85 @@ and (select Round(6371 * acos(cos(radians((select latitude from Station where st
         $pdo2 = pdoSqlConnect();
         $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease, \"null\") as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
+       COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
+       COALESCE(R.thisFloor, \"null\") as thisFloor,
+       COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만') end as maintenanceCost,
+       COALESCE(RI.roomImg, 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as roomImg
+from Room as R
+left join AgencyRoom as AR
+on R.roomIdx = AR.roomIdx
+left join (select CI.roomIdx, CI.roomImg as roomImg
+from (select roomIdx, Min(roomImgIdx) as roomImgIdx
+from RoomImg
+group by roomIdx) as C
+left join RoomImg as CI
+on CI.roomIdx = CI.roomIdx and C.roomImgIdx = CI.roomImgIdx) as RI
+on RI.roomIdx=R.roomIdx
+where AR.agencyIdx = :agencyIdx and R.isDeleted = \"N\" and R.sold =\"N\"
+limit 2";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':agencyIdx',$row['agencyIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_ASSOC);
+        $res = $st2->fetchAll();
+
+
+        if($res){
+            $row["roomlist"] = $res;
+        }else{
+            $row["roomlist"] = 'null';
+        }
+
+        $result[] = $row;
+
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+}
+
+
+function universityAgencyList($university)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select A.agencyIdx,
+       COALESCE(A.agencyName,'null') as agencyName,
+       COALESCE(A.agencyAddress,'null') as agencyAddress,
+       COALESCE(A.agencyComment,'null') as agencyComment,
+       COALESCE(AM.agencyMemberProfileImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%ED%94%84%EB%A1%9C%ED%95%84%20%EA%B8%B0%EB%B3%B8%EC%82%AC%EC%A7%84.PNG?alt=media&token=7e94ef45-54cc-4cfa-9b2d-8c091d953914') as agencyBossImg,
+       A.latitude,
+       A.longitude
+from Agency as A
+         left join (select agencyIdx,
+                           COALESCE(agencyMemberProfileImg,
+                                    'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%ED%94%84%EB%A1%9C%ED%95%84%20%EA%B8%B0%EB%B3%B8%EC%82%AC%EC%A7%84.PNG?alt=media&token=7e94ef45-54cc-4cfa-9b2d-8c091d953914') as agencyMemberProfileImg
+                    from AgencyMember
+                    where agencyMemberPosition = \"대표공인중개사\") as AM
+                   on AM.agencyIdx = A.agencyIdx
+where A.isDeleted ='N'
+and (select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(A.latitude)) * cos(radians(A.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(A.latitude))), 0)) <=1";
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        $pdo2 = pdoSqlConnect();
+        $query2="select COALESCE(R.roomIdx, \"null\") as roomIdx,
+       COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom, \"null\") as kindOfRoom,
        COALESCE(R.thisFloor, \"null\") as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), \"null\") as exclusiveArea,
@@ -1914,6 +2090,60 @@ and (select Round(6371 * acos(cos(radians((select latitude from Station where st
 }
 
 
+function universityComplexList($roomType,$university)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(C.complexIdx, 'null')     as complexIdx,
+       COALESCE(C.complexName, 'null')     as complexName,
+       COALESCE(C.complexAddress, 'null')     as complexAddress,
+       COALESCE(CI.complexImg, 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as complexImg,
+       COALESCE(RN.roomNum, '0')     as roomNum,
+       COALESCE(C.kindOfBuilding, 'null')     as kindOfBuilding,
+       COALESCE(concat(C.householdNum,'세대'), 'null')     as householdNum,
+       COALESCE(C.completionDate, 'null')     as completionDate
+from Complex as C
+         left join (select COM.complexName,
+                           COM.complexAddress,
+                           COM.kindOfBuilding,
+                           COM.householdNum,
+                           COM.completionDate,
+                           CI.complexIdx,
+                           CI.complexImg as complexImg
+                    from (select complexIdx, Min(complexImgIdx) as complexImgIdx
+                          from ComplexImg
+                          group by complexIdx) as C
+                             left join ComplexImg as CI
+                                       on CI.complexIdx = CI.complexIdx and C.complexImgIdx = CI.complexImgIdx
+                             left join Complex as COM
+                                       on COM.complexIdx = CI.complexIdx
+) as CI
+                   on CI.complexIdx = C.complexIdx
+         left join (select complexIdx, count(complexIdx) as roomNum
+                    from RoomInComplex
+                    group by complexIdx) as RN
+                   on RN.complexIdx = C.complexIdx
+where C.isDeleted = 'N'
+and C.kindOfBuilding regexp :roomType
+and (select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(C.latitude)) * cos(radians(C.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(C.latitude))), 0)) <=1";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+}
+
+
 
 function addressRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx)
 {
@@ -1921,7 +2151,7 @@ function addressRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$excl
     $query1 = "select R.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as kindOfRoom,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -2039,7 +2269,7 @@ function complexRoomList($complexIdx,$userIdx)
     $query1 = "select RC.roomIdx,
        C.complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -2121,7 +2351,7 @@ function agencyRoomList($agencyIdx,$userIdx)
     $query1 = "select AR.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as roomType,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -2199,7 +2429,7 @@ function rangeRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclus
     $query1 = "select R.roomIdx,
        COALESCE(C.complexName,'null') as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
-       COALESCE(R.lease,'null') as lease,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
        COALESCE(R.kindOfRoom,'null') as kindOfRoom,
        COALESCE(R.thisFloor,'null') as thisFloor,
        COALESCE(concat(R.exclusiveArea,\"㎡\"), 'null') as exclusiveArea,
@@ -2322,7 +2552,7 @@ function stationRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$excl
     $query1 = "select R.roomIdx,
        COALESCE(C.complexName, 'null')                                                                                                                                                                                   as complexName,
        COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null')                                                                                                                                              as monthlyRent,
-       COALESCE(R.lease, 'null')                                                                                                                                                                                           as lease,
+       COALESCE(concat('전세 ',R.lease),'null')                                                                                                                                                                                 as lease,
        COALESCE(R.kindOfRoom, 'null')                                                                                                                                                                                      as kindOfRoom,
        COALESCE(R.thisFloor, 'null')                                                                                                                                                                                       as thisFloor,
        COALESCE(concat(R.exclusiveArea, \"㎡\"), 'null')                                                                                                                                                                      as exclusiveArea,
@@ -2445,6 +2675,138 @@ order by R.checkedRoom, R.plus desc";
 
     return $result;
 }
+
+
+function UniversityRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$university,$userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select R.roomIdx,
+       COALESCE(C.complexName, 'null')                                                                                                                                                                                   as complexName,
+       COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null')                                                                                                                                              as monthlyRent,
+       COALESCE(R.lease, 'null')                                                                                                                                                                                           as lease,
+       COALESCE(R.kindOfRoom, 'null')                                                                                                                                                                                      as kindOfRoom,
+       COALESCE(R.thisFloor, 'null')                                                                                                                                                                                       as thisFloor,
+       COALESCE(concat(R.exclusiveArea, \"㎡\"), 'null')                                                                                                                                                                      as exclusiveArea,
+       case
+           when R.maintenanceCost = 0 then 'null'
+           else concat('관리비 ', R.maintenanceCost, '만원') end                                                                                                                                                                as maintenanceCost,
+       COALESCE(R.roomSummary, 'null')                                                                                                                                                                                     as roomSummary,
+       COALESCE(R.latitude, 'null')                                                                                                                                                                                        as latitude,
+       COALESCE(R.longitude, 'null')                                                                                                                                                                                       as longitude,
+       COALESCE(A.agencyIdx, 'null')                                                                                                                                                                                       as agencyIdx,
+       COALESCE(A.agencyName, 'null')                                                                                                                                                                                      as agencyName,
+       COALESCE(A.agencyComment, 'null')                                                                                                                                                                                   as agencyName,
+       COALESCE(AM.agencyMemberProfileImg,
+                'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%ED%94%84%EB%A1%9C%ED%95%84%20%EA%B8%B0%EB%B3%B8%EC%82%AC%EC%A7%84.PNG?alt=media&token=7e94ef45-54cc-4cfa-9b2d-8c091d953914') as agencyBossImg,
+       COALESCE(concat(ARN.agencyRoomNum, '개의 방'), '0개의 방')                                                                                                                                                                as agencyRoomNum,
+       COALESCE(A.quickInquiry, 'N')                                                                                                                                                                                       as checkedRoom,
+       COALESCE(R.checkedRoom, 'N')                                                                                                                                                                                        as checkedRoom,
+       COALESCE(R.plus, 'N')                                                                                                                                                                                               as plus,
+       COALESCE(UH.heart, 'N')                                                                                                                                                                                             as heart
+from Room as R
+         left join RoomInComplex as RIC
+                   on R.roomIdx = RIC.roomIdx
+         left join Complex as C
+                   on RIC.complexIdx = C.complexIdx
+         left join (select RI.roomIdx, R.roomImg
+                    from (select min(roomImgIdx) as roomImgIdx, roomIdx
+                          from RoomImg
+                          group by roomIdx) as RI
+                             left join RoomImg as R
+                                       on R.roomImgIdx = RI.roomImgIdx and R.roomIdx = RI.roomIdx) as RI
+                   on RI.roomIdx = R.roomIdx
+         left join AgencyRoom as AR
+                   on AR.roomIdx = R.roomIdx
+         left join Agency as A
+                   on AR.agencyIdx = A.agencyIdx
+         left join AgencyMember as AM
+                   on A.agencyBossName = AM.agencyMemberName and AM.agencyMemberPosition = \"대표공인중개사\"
+         left join (select agencyIdx, count(agencyIdx) as agencyRoomNum
+                    from AgencyRoom
+                    group by agencyIdx) as ARN
+                   on ARN.agencyIdx = AR.agencyIdx
+         left join (select roomIdx, heart
+                    from UserHeart
+                    where isDeleted = \"N\" and roomIdx is not null and userIdx = :userIdx) as UH
+                   on UH.roomIdx = R.roomIdx
+where kindOfRoom regexp :roomType
+  and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1), '만', 1) >= :maintenanceCostMin
+  and SUBSTRING_INDEX(SUBSTRING_INDEX(maintenanceCost, ' ', -1), '만', 1) <= :maintenanceCostMax
+  and left(exclusiveArea, char_length(exclusiveArea) - 1) >= :exclusiveAreaMin
+  and left(exclusiveArea, char_length(exclusiveArea) - 1) <= :exclusiveAreaMax
+  and R.isDeleted = 'N'
+  and (select Round(6371 * acos(cos(radians((select latitude from University where universityName = :universityName))) *
+                        cos(radians(R.latitude)) * cos(radians(R.longitude) - radians(
+                (select longitude from University where universityName = :universityName))) +
+                        sin(radians((select latitude from University where universityName = :universityName))) *
+                        sin(radians(R.latitude))), 0)) <=1
+order by R.checkedRoom, R.plus desc";
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':universityName',$university,PDO::PARAM_STR);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        //한줄 읽은 행에 거기에 맞는 해시태그 추가
+        $pdo2 = pdoSqlConnect();
+        $query2="select hashtag from RoomHashTag
+        where roomIdx=:roomIdx";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':roomIdx',$row['roomIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_NUM);
+        $hash = $st2->fetchAll();
+
+        //배열형식으로 되어있어 배열을 품
+        $hashlist=array();
+        for($i=0;$i<count($hash);$i++){
+            array_push($hashlist,$hash[$i][0]);
+        }
+
+        if($hashlist){
+            $row["hashTag"] = $hashlist;
+        }else{
+            $row["hashTag"] = 'null';
+        }
+
+        $query3="select roomImg from RoomImg
+        where roomIdx=:roomIdx";
+        $st2 = $pdo2->prepare($query3);
+        $st2->bindParam(':roomIdx',$row['roomIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_NUM);
+        $roomImg = $st2->fetchAll();
+
+        //배열형식으로 되어있어 배열을 품
+        $roomImglist=array();
+        for($i=0;$i<count($roomImg);$i++){
+            array_push($roomImglist,$roomImg[$i][0]);
+        }
+
+        if($roomImglist){
+            $row["roomImg"] = $roomImglist;
+        }else{
+            $row["roomImg"] = 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36';
+        }
+        $result[] = $row;
+
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+}
+
 
 function testPost($name)
 {
@@ -2649,6 +3011,22 @@ function isExistStation($address){
 
     $st = $pdo->prepare($query);
     $st->bindParam(':stationName',$address,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st=null;$pdo = null;
+
+    return intval($res[0]["exist"]);
+
+}
+
+function isExistUniversity($address){
+    $pdo = pdoSqlConnect();
+    $query = "SELECT EXISTS(SELECT * FROM University WHERE universityName=:universityName AND isDeleted = 'N') AS exist;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':universityName',$address,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();

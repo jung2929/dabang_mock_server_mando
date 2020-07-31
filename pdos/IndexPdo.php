@@ -7,7 +7,6 @@ function test()
     $query = "SELECT * FROM Test;";
 
     $st = $pdo->prepare($query);
-    //    $st->execute([$param,$param]);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
@@ -17,6 +16,627 @@ function test()
 
     return $res;
 }
+
+
+function recommendSecondRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$latitude,$longitude,$scale,$userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select R.roomIdx,
+       COALESCE(C.complexName,'null') as complexName,
+       COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
+       COALESCE(R.kindOfRoom,'null') as roomType,
+       COALESCE(R.thisFloor,'null') as thisFloor,
+       COALESCE(concat(R.exclusiveArea,'㎡'), 'null') as exclusiveArea,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만') end as maintenanceCost,
+       COALESCE(R.roomSummary,'null') as roomSummary,
+       COALESCE(RI.roomImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as roomImg,
+       COALESCE(A.quickInquiry,'N') as quickInquiry,
+       COALESCE(R.checkedRoom,'N') as checkedRoom,
+       COALESCE(UH.heart, 'N') as heart
+from Room as R
+             left join RoomInComplex as RC
+                   on RC.roomIdx = R.roomIdx
+         left join Complex as C
+                   on RC.complexIdx = C.complexIdx
+         left join AgencyRoom as AR
+                   on AR.roomIdx = RC.roomIdx
+         left join Agency as A
+                   on AR.agencyIdx = A.agencyIdx
+         left join (SELECT userIdx, roomIdx, heart
+                    FROM UserHeart
+                    where userIdx = :userIdx
+) as UH
+                   on UH.roomIdx = RC.roomIdx
+         left join (select RI.roomIdx, R.roomImg
+                    from (select min(roomImgIdx) as roomImgIdx, roomIdx
+                          from RoomImg
+                          group by roomIdx) as RI
+                             left join RoomImg as R
+                                       on R.roomImgIdx = RI.roomImgIdx and R.roomIdx = RI.roomIdx) as RI
+                   on RI.roomIdx = RC.roomIdx
+where R.kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
+and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) >= :exclusiveAreaMin and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) <= :exclusiveAreaMax
+and R.isDeleted = 'N'
+and R.latitude >= (:latitude-(:scale/1000))
+and R.latitude <= (:latitude+(:scale/1000))
+and R.longitude >= (:longitude-(:scale/1000))
+and R.longitude <= (:longitude+(:scale/1000))
+order by rand()
+limit 10";
+
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',floor($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',ceil($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',floor($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',ceil($exclusiveAreaMax),PDO::PARAM_INT);
+    $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
+    $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        //한줄 읽은 행에 거기에 맞는 해시태그 추가
+        $pdo2 = pdoSqlConnect();
+        $query2="select hashtag from RoomHashTag
+        where roomIdx=:roomIdx";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':roomIdx',$row['roomIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_NUM);
+        $hash = $st2->fetchAll();
+
+        //배열형식으로 되어있어 배열을 품
+        $hashlist=array();
+        for($i=0;$i<count($hash);$i++){
+            array_push($hashlist,$hash[$i][0]);
+        }
+
+        if($hashlist){
+            $row["hashTag"] = $hashlist;
+        }else{
+            $row["hashTag"] = 'null';
+        }
+
+        $result[] = $row;
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+
+}
+
+function recommendRoomNum($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select count(*)
+from Room as R
+where R.kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
+and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) >= :exclusiveAreaMin and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) <= :exclusiveAreaMax
+and R.roomAddress Like concat('%',:address,'%') and R.isDeleted = 'N'
+order by R.checkedRoom, R.plus desc";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':roomType', $roomType, PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin', floor($maintenanceCostMin), PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax', ceil($maintenanceCostMax), PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin', floor($exclusiveAreaMin), PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax', ceil($exclusiveAreaMax), PDO::PARAM_INT);
+    $st->bindParam(':address', $address, PDO::PARAM_STR);
+
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function recommendRoomList($roomType,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax,$address,$userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query1 = "select R.roomIdx,
+       COALESCE(C.complexName,'null') as complexName,
+       COALESCE(concat('월세 ',R.deposit,'/',R.monthRent),'null') as monthlyRent,
+       COALESCE(concat('전세 ',R.lease),'null') as lease,
+       COALESCE(R.kindOfRoom,'null') as roomType,
+       COALESCE(R.thisFloor,'null') as thisFloor,
+       COALESCE(concat(R.exclusiveArea,'㎡'), 'null') as exclusiveArea,
+       case when R.maintenanceCost=0 then 'null' else concat('관리비 ',R.maintenanceCost,'만') end as maintenanceCost,
+       COALESCE(R.roomSummary,'null') as roomSummary,
+       COALESCE(RI.roomImg,'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/default%2F%EB%B0%A9%20%EA%B8%B0%EB%B3%B8%EC%9D%B4%EB%AF%B8%EC%A7%80.PNG?alt=media&token=ac7a7438-5dde-4666-bccd-6ab0c07d0f36') as roomImg,
+       COALESCE(A.quickInquiry,'N') as quickInquiry,
+       COALESCE(R.checkedRoom,'N') as checkedRoom,
+       COALESCE(UH.heart, 'N') as heart
+from Room as R
+             left join RoomInComplex as RC
+                   on RC.roomIdx = R.roomIdx
+         left join Complex as C
+                   on RC.complexIdx = C.complexIdx
+         left join AgencyRoom as AR
+                   on AR.roomIdx = RC.roomIdx
+         left join Agency as A
+                   on AR.agencyIdx = A.agencyIdx
+         left join (SELECT userIdx, roomIdx, heart
+                    FROM UserHeart
+                    where userIdx = :userIdx
+) as UH
+                   on UH.roomIdx = RC.roomIdx
+         left join (select RI.roomIdx, R.roomImg
+                    from (select min(roomImgIdx) as roomImgIdx, roomIdx
+                          from RoomImg
+                          group by roomIdx) as RI
+                             left join RoomImg as R
+                                       on R.roomImgIdx = RI.roomImgIdx and R.roomIdx = RI.roomIdx) as RI
+                   on RI.roomIdx = RC.roomIdx
+where R.kindOfRoom regexp :roomType and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) >= :maintenanceCostMin and SUBSTRING_INDEX(SUBSTRING_INDEX(R.maintenanceCost, ' ', -1),'만',1) <= :maintenanceCostMax
+and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) >= :exclusiveAreaMin and left(R.exclusiveArea, char_length(R.exclusiveArea)-1) <= :exclusiveAreaMax
+and R.roomAddress Like concat('%',:address,'%') and R.isDeleted = 'N'
+order by rand()
+limit 5";
+
+
+    $st = $pdo->prepare($query1);
+    $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',floor($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',ceil($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',floor($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',ceil($exclusiveAreaMax),PDO::PARAM_INT);
+    $st->bindParam(':address',$address,PDO::PARAM_STR);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+
+    $result = array();
+    //행을 한줄씩 읽음
+    while($row = $st -> fetch()) {
+        //한줄 읽은 행에 거기에 맞는 해시태그 추가
+        $pdo2 = pdoSqlConnect();
+        $query2="select hashtag from RoomHashTag
+        where roomIdx=:roomIdx";
+        $st2 = $pdo2->prepare($query2);
+        $st2->bindParam(':roomIdx',$row['roomIdx'],PDO::PARAM_STR);
+        $st2->execute();
+        $st2->setFetchMode(PDO::FETCH_NUM);
+        $hash = $st2->fetchAll();
+
+        //배열형식으로 되어있어 배열을 품
+        $hashlist=array();
+        for($i=0;$i<count($hash);$i++){
+            array_push($hashlist,$hash[$i][0]);
+        }
+
+        if($hashlist){
+            $row["hashTag"] = $hashlist;
+        }else{
+            $row["hashTag"] = 'null';
+        }
+
+        $result[] = $row;
+    }
+
+    $st = null;
+    $pdo = null;
+
+    return $result;
+
+}
+
+
+function getExclusiveAreaMax($userIdx)
+{
+
+    $exclusiveAreaMaxAvg=getExclusiveAreaMaxAvg($userIdx);
+    $exclusiveAreaMaxStd=getExclusiveAreaMaxStd($userIdx);
+
+    $rangeMin=$exclusiveAreaMaxAvg-(1.5)*$exclusiveAreaMaxStd;
+    $rangeMax=$exclusiveAreaMaxAvg+(1.5)*$exclusiveAreaMaxStd;
+
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(exclusiveAreaMax),2),1000) as exclusiveAreaMax from UserSearchLog
+where exclusiveAreaMax >=:rangeMin and exclusiveAreaMax <=:rangeMax";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':rangeMin',floor($rangeMin),PDO::PARAM_INT);
+    $st->bindParam(':rangeMax',ceil($rangeMax),PDO::PARAM_INT);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+
+function getExclusiveAreaMin($userIdx)
+{
+
+    $exclusiveAreaMinAvg=getExclusiveAreaMinAvg($userIdx);
+    $exclusiveAreaMinStd=getExclusiveAreaMinStd($userIdx);
+
+    $rangeMin=$exclusiveAreaMinAvg-(1.5)*$exclusiveAreaMinStd;
+    $rangeMax=$exclusiveAreaMinAvg+(1.5)*$exclusiveAreaMinStd;
+
+
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(exclusiveAreaMin),2),0) as exclusiveAreaMin from UserSearchLog
+where exclusiveAreaMin >=:rangeMin and exclusiveAreaMin <=:rangeMax and exclusiveAreaMin !=0 ";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':rangeMin',floor($rangeMin),PDO::PARAM_INT);
+    $st->bindParam(':rangeMax',ceil($rangeMax),PDO::PARAM_INT);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getMaintenaceCostMax($userIdx)
+{
+
+    $maintenanceCostMaxAvg=getMaintenanceCostMaxAvg($userIdx);
+    $maintenanceCostMaxStd=getMaintenanceCostMaxStd($userIdx);
+
+    $rangeMin=$maintenanceCostMaxAvg-(1.5)*$maintenanceCostMaxStd;
+    $rangeMax=$maintenanceCostMaxAvg+(1.5)*$maintenanceCostMaxStd;
+
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(maintenanceCostMax),2),1000) as maintenanceCostMax from UserSearchLog
+where maintenanceCostMax >=:rangeMin and maintenanceCostMax <=:rangeMax";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':rangeMin',floor($rangeMin),PDO::PARAM_INT);
+    $st->bindParam(':rangeMax',ceil($rangeMax),PDO::PARAM_INT);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getMaintenaceCostMin($userIdx)
+{
+
+    $maintenanceCostMinAvg=getMaintenanceCostMinAvg($userIdx);
+    $maintenanceCostMinStd=getMaintenanceCostMinStd($userIdx);
+
+    $rangeMin=$maintenanceCostMinAvg-(1.5)*$maintenanceCostMinStd;
+    $rangeMax=$maintenanceCostMinAvg+(1.5)*$maintenanceCostMinStd;
+
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(maintenanceCostMin),2),0) as maintenanceCostMin from UserSearchLog
+where maintenanceCostMin >=:rangeMin and maintenanceCostMin <=:rangeMax and maintenanceCostMin !=0";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':rangeMin',floor($rangeMin),PDO::PARAM_INT);
+    $st->bindParam(':rangeMax',ceil($rangeMax),PDO::PARAM_INT);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getExclusiveAreaMaxStd($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(STD(exclusiveAreaMax),1),0) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and exclusiveAreaMax !=1000";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getExclusiveAreaMinStd($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(STD(exclusiveAreaMin),2),1000) as exclusiveAreaMin from UserSearchLog
+where userIdx=:userIdx and exclusiveAreaMin !=0";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getMaintenanceCostMaxStd($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(STD(maintenanceCostMax),2),1000) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and maintenanceCostMax !=1000";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getMaintenanceCostMinStd($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(STD(maintenanceCostMin),2),0) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and maintenanceCostMin !=0;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getExclusiveAreaMaxAvg($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(exclusiveAreaMax),1),0) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and exclusiveAreaMax !=1000";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getExclusiveAreaMinAvg($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(exclusiveAreaMin),2),0) as exclusiveAreaMin from UserSearchLog
+where userIdx=:userIdx and exclusiveAreaMin !=0";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+
+function getMaintenanceCostMaxAvg($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(maintenanceCostMax),2),1000) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and maintenanceCostMax !=1000";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getMaintenanceCostMinAvg($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select COALESCE(ROUND(AVG(maintenanceCostMin),2),0) as maintenanceCostMin from UserSearchLog
+where userIdx=:userIdx and maintenanceCostMin !=0;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_NUM);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0][0];
+}
+
+function getRecommendAddress($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select A.searchLog ,A.searchRate+A.likeRate+A.inquiryRate+A.callRate as rate from(
+select U.searchLog, U.searchRate, COALESCE(L.likeRate,0) as likeRate, COALESCE(I.inquiryRate,0) as inquiryRate, COALESCE(C.callRate,0) as callRate
+from (select searchLog,count(searchlog) as searchRate from UserSearchLog
+where userIdx=:userIdx and createdAt >= DATE_SUB(NOW(), INTERVAL 10 DAY )
+group by searchLog) as U
+left join (select R.roomAddress, count(R.roomAddress)*1.2 as likeRate
+from (select roomIdx from UserHeart
+where userIdx=:userIdx and heart='Y' and isDeleted ='N' and updatedAt >= DATE_SUB(NOW(), INTERVAL 10 DAY) and roomIdx is not null) as U
+left join Room as R
+on U.roomIdx = R.roomIdx
+group by R.roomAddress) as L
+on U.searchLog=L.roomAddress
+left join (select R.roomAddress, count(R.roomAddress)*1.4 as inquiryRate
+from (select roomIdx from UserInquiryLog
+where userIdx=:userIdx and isDeleted ='N' and createdAt >= DATE_SUB(NOW(), INTERVAL 10 DAY )) as U
+left join Room as R
+on U.roomIdx = R.roomIdx
+group by R.roomAddress) as I
+on I.roomAddress = U.searchLog
+left join (select R.roomAddress, count(R.roomAddress)*1.8 as callRate
+from (select roomIdx from UserCallLog
+where userIdx=:userIdx and isDeleted ='N' and createdAt >= DATE_SUB(NOW(), INTERVAL 10 DAY )) as U
+left join Room as R
+on U.roomIdx = R.roomIdx
+group by R.roomAddress) as C
+on C.roomAddress = U.searchLog) as A
+limit 1;";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0]['searchLog'];
+}
+
+function getRecommendRoomType($userIdx)
+{
+    $pdo = pdoSqlConnect();
+    $query = "select '원룸' as roomType, count(*) as rate
+from(select roomType from UserSearchLog                                
+where userIdx=:userIdx and roomType not in ('원룸|투쓰리룸|오피스텔')) as R      
+where R.roomType like '%원룸%'
+union
+select '투룸' as roomType, count(*) as rate
+from(select roomType from UserSearchLog
+where userIdx=:userIdx and roomType not in ('원룸|투쓰리룸|오피스텔')) as R
+where R.roomType like '%투룸%'
+union
+select '쓰리룸' as roomType, count(*) as rate
+from(select roomType from UserSearchLog
+where userIdx=:userIdx and roomType not in ('원룸|투쓰리룸|오피스텔')) as R
+where R.roomType like '%쓰리룸%'
+union
+select '오피스텔' as roomType, count(*) as rate
+from(select roomType from UserSearchLog
+where userIdx=:userIdx and roomType not in ('원룸|투쓰리룸|오피스텔')) as R
+where R.roomType like '%오피스텔%'
+order by rate desc
+limit 1";
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res[0]['roomType'];
+}
+
+function selectSearchWord($rows,$pages)
+{
+    $offset = $rows*($pages-1);
+    $pdo = pdoSqlConnect();
+    $query = "select searchWord, nowRate, diff from RealTimeSearchWord
+where isDeleted ='N'
+order by nowRate desc, diff desc
+LIMIT :limit offset :offset";
+
+
+    $st = $pdo->prepare($query);
+    $st->bindParam(':limit',intval($rows),PDO::PARAM_INT);
+    $st->bindParam(':offset',intval($offset),PDO::PARAM_INT);
+    $st->execute();
+    $st->setFetchMode(PDO::FETCH_ASSOC);
+    $res = $st->fetchAll();
+
+    $st = null;
+    $pdo = null;
+
+    return $res;
+
+}
+
+
+function createSearchWord()
+{
+    $pdo = pdoSqlConnect();
+
+    try {
+        $pdo->beginTransaction();
+        $query1 = "delete from RealTimeSearchWord;";
+
+        $st = $pdo->prepare($query1);
+        $st->execute();
+
+        $query2 = "Insert Into RealTimeSearchWord (searchWord, nowRate, diff)
+select R.searchWord, R.nowRate, R.diff
+from (select N.searchWord, N.nowRate, COALESCE(S.subRate,0) as subRate, COALESCE(nowRate-subrate,N.nowRate) as diff
+from (select searchLog as searchWord, count(searchLog) as nowRate from UserSearchLog
+where createdAt >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+group by searchLog) as N
+left join (select searchLog as searchWord, count(searchLog) as subrate from UserSearchLog
+where createdAt >= DATE_SUB(NOW(), INTERVAL 3 DAY ) and createdAt <= DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+group by searchLog) as S
+on S.searchWord = N.searchWord) as R;
+";
+
+        $st = $pdo->prepare($query2);
+        $st->execute();
+
+        $pdo->commit();
+    }
+    catch (\Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollback();
+            // If we got here our two data updates are not in the database
+        }
+        throw $e;
+    }
+}
+
 
 function userInfoCreate($userEmail)
 {
@@ -48,13 +668,13 @@ function createUser($userName, $userEmail, $userPwd, $userPhone)
 
 }
 
-function createSnsUser($userName, $userEmail, $oauthType)
+function createSnsUser($userName, $userEmail)
 {
     $pdo = pdoSqlConnect();
-    $query = "INSERT INTO User (userName, userEmail, snsType) VALUES (?, ? ,?);";
+    $query = "INSERT INTO User (userName, userEmail, snsType) VALUES (?, ? ,1);";
 
     $st = $pdo->prepare($query);
-    $st->execute([$userName, $userEmail, $oauthType]);
+    $st->execute([$userName, $userEmail]);
 
     $st = null;
     $pdo = null;
@@ -644,26 +1264,31 @@ function searchRecently($userIdx)
        COALESCE(C.tag,'null') as tag,
        case when regionName like '%동' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%A7%80%EC%97%AD%EB%AA%85%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=9cd01fe3-122b-4faa-86b5-0af71919afd4'
        when regionName like '%역' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%97%AD%20%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=6ea88cf0-e8f7-45cd-9459-1819aaf0b73a'
+       when regionName like '%교' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EB%8C%80%ED%95%99%EA%B5%90%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=d19e2c9c-c68e-4098-adbc-f1499727122a'
        else 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%95%84%ED%8C%8C%ED%8A%B8%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=b67cb97f-0174-4828-b538-8c1954fb732b'
-       end as icon
+       end as icon,
+       COALESCE(Cp.complexIdx,'null') as complexIdx
 from((select C.searchLog as regionName , null as address , null as tag, C.createdAt as createdAt
-from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
+from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" group by searchLog) as C
 where searchlog like '%동')
 union
 (select R.regionName, R.address, S.stationLine as tag, R.createdAt  from
 (select searchlog as regionName , null as address , createdAt
-from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
+from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" group by searchLog) as C
 where searchlog like '%역') as R
 left join Station as S
 on S.stationName = R.regionName)
 union
 (select R.regionName, C.complexAddress, C.kindOfbuilding, R.createdAt from
-(select C.searchlog as regionName , null as address , null as tag, C.createdAt from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" and userIdx = :userIdx group by searchLog) as C
-where not searchlog like  '%역' and not searchlog like  '%동') as R
+(select C.searchlog as regionName , null as address , null as tag, C.createdAt from (select searchLog,Max(createdAt) as createdAt from UserSearchLog where isDeleted=\"N\" group by searchLog) as C
+where not searchlog like  '%역' and not searchlog like  '%동' and not searchlog like  '%읍' and not searchlog like  '%면') as R
 left join Complex as C
 on C.complexName = R.regionName)) as C
-order by createdAt desc
-limit 10";
+left join Complex as Cp
+on regionName = Cp.ComplexName
+order by C.createdAt desc
+limit 10
+";
 
     $st = $pdo->prepare($query);
     //    $st->execute([$param,$param]);
@@ -689,7 +1314,8 @@ function searchList($keyWord)
        when regionName like '%역' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%97%AD%20%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=6ea88cf0-e8f7-45cd-9459-1819aaf0b73a'
        when regionName like '%교' then 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EB%8C%80%ED%95%99%EA%B5%90%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=d19e2c9c-c68e-4098-adbc-f1499727122a'
        else 'https://firebasestorage.googleapis.com/v0/b/allroom.appspot.com/o/icon%2F%EC%95%84%ED%8C%8C%ED%8A%B8%EC%95%84%EC%9D%B4%EC%BD%98.PNG?alt=media&token=b67cb97f-0174-4828-b538-8c1954fb732b'
-       end as icon
+       end as icon,
+       COALESCE(Cp.complexIdx,'null') as complexIdx
 from(
 (select complexName as regionName , complexAddress as address , kindOfBuilding as tag from Complex where isDeleted='N')
 union
@@ -698,6 +1324,8 @@ union
 (select universityName as regionName, null as address, null as tag from University where isDeleted='N')
 union
 (select stationName as regionName, null as address, stationLine as tag from Station where isDeleted='N')) as C
+left join Complex as Cp
+on C.regionName = Cp.ComplexName
 where C.regionName like concat('%',:keyWord,'%')
 order by icon desc
 limit 30";
@@ -1447,7 +2075,7 @@ and longitude <= (:longitude+(:scale/1000))
     $st = $pdo->prepare($query);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
-    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
     $res = $st->fetchAll();
@@ -1534,13 +2162,13 @@ and R.longitude <= (:longitude+(:scale/1000))";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
-    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
     $res = $st->fetchAll();
@@ -1571,10 +2199,10 @@ where
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':stationName',$station,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
@@ -1606,10 +2234,10 @@ where
 
     $st = $pdo->prepare($query);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':universityName',$university,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_NUM);
@@ -1770,7 +2398,7 @@ and A.longitude <= (:longitude+(:scale/1000))";
     $st = $pdo->prepare($query1);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
-    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
 
@@ -2024,7 +2652,7 @@ and C.longitude <= (:longitude+(:scale/1000))";
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
-    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
     $res = $st->fetchAll();
@@ -2198,10 +2826,10 @@ order by R.checkedRoom, R.plus desc";
 
     $st = $pdo->prepare($query1);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':address',$address,PDO::PARAM_STR);
     $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
     $st->execute();
@@ -2480,13 +3108,13 @@ order by R.checkedRoom, R.plus desc";
 
     $st = $pdo->prepare($query1);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':latitude',$latitude,PDO::PARAM_STR);
     $st->bindParam(':longitude',$longitude,PDO::PARAM_STR);
-    $st->bindParam(':scale',$scale,PDO::PARAM_STR);
+    $st->bindParam(':scale',intval($scale),PDO::PARAM_INT);
     $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
     $st->execute();
     $st->setFetchMode(PDO::FETCH_ASSOC);
@@ -2613,10 +3241,10 @@ order by R.checkedRoom, R.plus desc";
 
     $st = $pdo->prepare($query1);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':stationName',$station,PDO::PARAM_STR);
     $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
     $st->execute();
@@ -2744,10 +3372,10 @@ order by R.checkedRoom, R.plus desc";
 
     $st = $pdo->prepare($query1);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
-    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
-    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',ceil($maintenanceCostMin),PDO::PARAM_INT);
+    $st->bindParam(':maintenanceCostMax',floor($maintenanceCostMax),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMin',ceil($exclusiveAreaMin),PDO::PARAM_INT);
+    $st->bindParam(':exclusiveAreaMax',floor($exclusiveAreaMax),PDO::PARAM_INT);
     $st->bindParam(':universityName',$university,PDO::PARAM_STR);
     $st->bindParam(':userIdx',$userIdx,PDO::PARAM_STR);
     $st->execute();
@@ -2896,15 +3524,19 @@ function insertUserRoomlog($userIdx,$roomIdx)
 }
 
 
-function insertUserSearchLog($jwtUserIdx,$roomType,$address)
+function insertUserSearchLog($jwtUserIdx,$roomType,$address,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax)
 {
     $pdo = pdoSqlConnect();
-    $query = "INSERT INTO UserSearchLog (userIdx, searchLog, roomType) VALUES (:userIdx,:address,:roomType);";
+    $query = "INSERT INTO UserSearchLog (userIdx, searchLog, roomType,maintenanceCostMin,maintenanceCostMax,exclusiveAreaMin,exclusiveAreaMax) VALUES (:userIdx,:address,:roomType,:maintenanceCostMin,:maintenanceCostMax,:exclusiveAreaMin,:exclusiveAreaMax);";
 
     $st = $pdo->prepare($query);
     $st->bindParam(':userIdx',$jwtUserIdx,PDO::PARAM_STR);
     $st->bindParam(':roomType',$roomType,PDO::PARAM_STR);
     $st->bindParam(':address',$address,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMin',$maintenanceCostMin,PDO::PARAM_STR);
+    $st->bindParam(':maintenanceCostMax',$maintenanceCostMax,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMin',$exclusiveAreaMin,PDO::PARAM_STR);
+    $st->bindParam(':exclusiveAreaMax',$exclusiveAreaMax,PDO::PARAM_STR);
     $st->execute();
 
     $st = null;

@@ -11,6 +11,9 @@ $patternPhone = "/^01[0179][0-9]{7,8}$/";
 $res = (Object)Array();
 header('Content-Type: json');
 $req = json_decode(file_get_contents("php://input"));
+
+ini_set('default_charset', 'utf8mb4');
+
 try {
     addAccessLogs($accessLogs, $req);
     switch ($handler) {
@@ -380,11 +383,59 @@ try {
 
         case "oauthLogin":
 
+            $returnCode = $_GET["code"]; // 서버로 부터 토큰을 발급받을 수 있는 코드를 받아옴
+            $restAPIKey = "553885184cb356d5b2c85be4298adf52"; // 본인의 REST API KEY를 입력
+            $callbacURI = urlencode("http://mandumerry.ga/users/oauth/login"); // 본인의 Call Back URL을 입력
 
-            $userName=$req->userName;
-            $userEmail=$req->userEmail;
-            $oauthType=$req->oauthType;
+            $returnUrl = "https://kauth.kakao.com/oauth/token?grant_type=authorization_code&client_id=".$restAPIKey."&redirect_uri=".$callbacURI."&code=".$returnCode;
 
+            $isPost = false;
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $returnUrl);
+            curl_setopt($ch, CURLOPT_POST, $isPost);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+            $headers = array();
+            $loginResponse = curl_exec ($ch);
+            $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close ($ch);
+
+//            var_dump($loginResponse); // Kakao API 서버로 부터 받아온 값
+
+            $accessToken= json_decode($loginResponse)->access_token; //Access Token만 따로 뺌
+
+//            echo "<br><br> accessToken : ".$accessToken;
+
+            $header = "Bearer ".$accessToken; // Bearer 다음에 공백 추가
+            $getProfileUrl = "https://kapi.kakao.com/v2/user/me";
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $getProfileUrl);
+            curl_setopt($ch, CURLOPT_POST, $isPost);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+            $headers = array();
+            $headers[] = "Authorization: ".$header;
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+            $profileResponse = curl_exec ($ch);
+            $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close ($ch);
+
+//            var_dump($profileResponse); // Kakao API 서버로 부터 받아온 값
+
+            $profileResponse = json_decode($profileResponse);
+
+            $userId = $profileResponse->id;
+            $userName = $profileResponse->properties->nickname;
+            $userEmail = $profileResponse->kakao_account->email;
+
+//            echo "<br><br> userId : ".$userId;
+//            echo "<br> userName : ".$userName;
+//            echo "<br> userEmail : ".$userEmail;
+
+//
 
             if(!isset($userEmail)) {
                 $res->isSuccess = FALSE;
@@ -403,16 +454,6 @@ try {
                 addErrorLogs($errorLogs, $res, $req);
                 return;
             }
-
-            if(!isset($oauthType)) {
-                $res->isSuccess = FALSE;
-                $res->code = 212;
-                $res->message = "sns 종류를 입력해 주십시오";
-                echo json_encode($res, JSON_NUMERIC_CHECK);
-                addErrorLogs($errorLogs, $res, $req);
-                return;
-            }
-
 
             //가입된 email이 있으면 jwt 토큰 발급, 없으면 회원가입.
             if(isValidUser($userEmail)){
@@ -433,7 +474,7 @@ try {
                 return;
             } else {
                 //회원가입 시키기
-                createSnsUser($userName, $userEmail,$oauthType);
+                createSnsUser($userName, $userEmail);
                 //이메일로 userIdx알아내기
                 $userIdx=getUserIdxFromEmail($userEmail);
                 //jwt토큰 만들기
@@ -451,7 +492,6 @@ try {
             break;
 
 
-
         case "testPost":
             http_response_code(200);
             $res->result = testPost($req->name);
@@ -459,6 +499,16 @@ try {
             $res->code = 100;
             $res->message = "테스트 성공";
             echo json_encode($res, JSON_NUMERIC_CHECK);
+            break;
+
+
+        case "kakaoCallback":
+
+            $restAPIKey = "553885184cb356d5b2c85be4298adf52"; //본인의 REST API KEY를 입력해주세요
+            $callbacURI = urlencode("http://mandumerry.ga/users/oauth/login"); //본인의 Call Back URL을 입력해주세요
+            $kakaoLoginUrl = "https://kauth.kakao.com/oauth/authorize?client_id=".$restAPIKey."&redirect_uri=".$callbacURI."&response_type=code";
+
+            echo $kakaoLoginUrl;
             break;
     }
 } catch (\Exception $e) {

@@ -225,7 +225,7 @@ try {
                 //UserSearchLog 기록을 위해 다시 원상태로 복구
                 $roomType=str_replace('투룸|쓰리룸','투쓰리룸',$roomType);
                 //검색내용을 UserSearchLog 테이블에 기록
-                insertUserSearchLog($jwtUserIdx,$roomType,$address);
+                insertUserSearchLog($jwtUserIdx,$roomType,$address,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax);
 
                 http_response_code(200);
                 $res->result = $result;
@@ -233,7 +233,7 @@ try {
                 $res->code = 100;
                 $res->message = "방 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($latitude and $longitude and $scale){
@@ -256,7 +256,7 @@ try {
                 $res->code = 100;
                 $res->message = "방 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($address and preg_match($patternStation, $address)){
@@ -279,7 +279,7 @@ try {
                 //UserSearchLog 기록을 위해 다시 원상태로 복구
                 $roomType=str_replace('투룸|쓰리룸','투쓰리룸',$roomType);
                 //검색내용을 UserSearchLog 테이블에 기록
-                insertUserSearchLog($jwtUserIdx,$roomType,$address);
+                insertUserSearchLog($jwtUserIdx,$roomType,$address,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax);
 
                 http_response_code(200);
                 $res->result = $result;
@@ -287,7 +287,7 @@ try {
                 $res->code = 100;
                 $res->message = "방 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($address and preg_match($patternUniversity, $address)){
@@ -310,7 +310,7 @@ try {
                 //UserSearchLog 기록을 위해 다시 원상태로 복구
                 $roomType=str_replace('투룸|쓰리룸','투쓰리룸',$roomType);
                 //검색내용을 UserSearchLog 테이블에 기록
-                insertUserSearchLog($jwtUserIdx,$roomType,$address);
+                insertUserSearchLog($jwtUserIdx,$roomType,$address,$maintenanceCostMin,$maintenanceCostMax,$exclusiveAreaMin,$exclusiveAreaMax);
 
                 http_response_code(200);
                 $res->result = $result;
@@ -318,7 +318,7 @@ try {
                 $res->code = 100;
                 $res->message = "방 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             break;
@@ -458,7 +458,7 @@ try {
                 $res->code = 100;
                 $res->message = "단지 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             //위경도로 분류
@@ -480,7 +480,7 @@ try {
                 $res->code = 100;
                 $res->message = "단지 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($address and preg_match($patternStation, $address)){
@@ -502,7 +502,7 @@ try {
                 $res->code = 100;
                 $res->message = "단지 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($address and preg_match($patternUniversity, $address)){
@@ -524,7 +524,7 @@ try {
                 $res->code = 100;
                 $res->message = "방 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             break;
@@ -629,7 +629,7 @@ try {
                 $res->code = 100;
                 $res->message = "중개사 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             //위경도로 분류
@@ -651,7 +651,7 @@ try {
                 $res->code = 100;
                 $res->message = "중개사 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
 
@@ -673,7 +673,7 @@ try {
                 $res->code = 100;
                 $res->message = "중개사 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             if($address and preg_match($patternUniversity, $address)){
@@ -693,7 +693,7 @@ try {
                 $res->code = 100;
                 $res->message = "중개사 리스트 출력";
                 echo json_encode($res);
-                break;
+                return;
             }
 
             break;

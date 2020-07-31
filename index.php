@@ -46,7 +46,8 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     $r->addRoute('GET', '/users/{userIdx}', ['UserController', 'userInfo']);
     $r->addRoute('POST', '/users/login', ['UserController', 'userBasicLogin']);
     $r->addRoute('POST', '/users', ['UserController', 'createUser']);
-    $r->addRoute('POST', '/users/oauth/login', ['UserController', 'oauthLogin']);
+    $r->addRoute('GET', '/kakaoCallback', ['UserController', 'kakaoCallback']);
+    $r->addRoute('GET', '/users/oauth/login', ['UserController', 'oauthLogin']);
     $r->addRoute('PATCH', '/likes', ['UserController', 'changeLikes']);
     // 더보기 기타 관련
     $r->addRoute('GET', '/notices', ['DummyController', 'noticeList']);
@@ -54,7 +55,10 @@ $dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) 
     //추가
     $r->addRoute('POST', '/calls', ['EtcController', 'createCallLog']);
     $r->addRoute('POST', '/inquiries', ['EtcController', 'createInquireLog']);
-
+    //실시간 검색어
+    $r->addRoute('GET', '/realTimeSearches', ['EtcController', 'searchWord']);
+    //추천 알고리즘
+    $r->addRoute('GET', '/users/{userIdx}/recommend-rooms', ['EtcController', 'recommendRooms']);
 
 
 

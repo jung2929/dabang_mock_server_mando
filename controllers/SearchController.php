@@ -37,7 +37,8 @@ try {
                 $res->code = 200;
                 $res->message = "검색 결과가 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
-                break;
+                addErrorLogs($errorLogs, $res, $req);
+                return;
             }
 
             http_response_code(200);
@@ -94,7 +95,7 @@ try {
 
             if(!isSearchRecently($userIdx)){
                 $res->isSuccess = False;
-                $res->code = 204;
+                $res->code = 203;
                 $res->message = "최근 검색 없음";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 addErrorLogs($errorLogs, $res, $req);
@@ -142,7 +143,7 @@ try {
 
             if(!isSearchRecently($userIdx)){
                 $res->isSuccess = False;
-                $res->code = 200;
+                $res->code = 203;
                 $res->message = "최근 검색이 없습니다.";
                 echo json_encode($res, JSON_NUMERIC_CHECK);
                 return;
